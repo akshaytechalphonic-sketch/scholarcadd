@@ -1,0 +1,37 @@
+# llms.txt for ScholarAcad
+# Website: https://scholaracad.com/
+# Purpose: Educational content, courses, and academic resources
+
+User-Agent: *
+Allow: /
+
+# Preferred canonical domain
+Canonical: https://scholaracad.com/
+
+# High-quality, authoritative content
+Include:
+https://scholaracad.com/
+https://scholaracad.com/all-courses/
+https://scholaracad.com/subjects/
+https://scholaracad.com/resources/
+https://scholaracad.com/blog/
+
+# Content to avoid for training or summarization
+Exclude:
+https://scholaracad.com/all-courses
+https://scholaracad.com/corporate-group-traning
+https://scholaracad.com/consulting
+https://scholaracad.com/one-to-one-traning
+https://scholaracad.com/join-as-a-trainer
+https://scholaracad.com/resource
+https://scholaracad.com/about
+https://scholaracad.com/us/project-management-professional-pmp
+
+# Copyright & usage guidance
+Usage:
+- Content may be used for search, discovery, and factual summarization
+- Do not reproduce full lessons, paid content, or course materials verbatim
+- Attribution to "ScholarAcad" is required where applicable
+
+# Contact for AI/LLM usage requests
+Contact: admin@scholaracad.com

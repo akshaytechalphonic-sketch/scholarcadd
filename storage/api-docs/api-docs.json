@@ -1,0 +1,2471 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "ScholarAcad API & Admin Documentation",
+        "description": "Interactive Swagger API documentation for ScholarAcad Backend API and Admin Panel",
+        "contact": {
+            "name": "ScholarAcad Team",
+            "email": "support@scholaracad.com"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://127.0.0.1:8000",
+            "description": "ScholarAcad Primary Server"
+        }
+    ],
+    "paths": {
+        "/login-check": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Admin and User Login",
+                "description": "Authenticate user with email and password to receive access token and user info",
+                "operationId": "loginCheck",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "admin@hotelres.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "admin@123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful login response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Login successful"
+                                        },
+                                        "token": {
+                                            "type": "string",
+                                            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                                        },
+                                        "user": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid credentials"
+                    }
+                }
+            }
+        },
+        "/api/send-otp": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Send Email OTP",
+                "description": "Generates a 6-digit OTP and emails it to the user",
+                "operationId": "sendOtp",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "user@example.com"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP sent successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "OTP sent successfully."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/verify-otp": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Verify Email OTP",
+                "description": "Verifies the OTP sent to user email address",
+                "operationId": "verifyOtp",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "otp"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "user@example.com"
+                                    },
+                                    "otp": {
+                                        "type": "string",
+                                        "example": "123456"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP verified successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "OTP verified successfully."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid or expired OTP"
+                    }
+                }
+            }
+        },
+        "/api/dynamic-page": {
+            "post": {
+                "tags": [
+                    "Dynamic Pages & CMS"
+                ],
+                "summary": "Get dynamic page content by slug",
+                "description": "Get dynamic CMS page content by slug",
+                "operationId": "getDynamicPage",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "slug"
+                                ],
+                                "properties": {
+                                    "slug": {
+                                        "type": "string",
+                                        "example": "about-us"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Page content retrieved"
+                    }
+                }
+            }
+        },
+        "/api/list/all-pages": {
+            "post": {
+                "tags": [
+                    "Dynamic Pages & CMS"
+                ],
+                "summary": "Get list of all published pages",
+                "description": "Get list of all published pages",
+                "operationId": "getAllPages",
+                "responses": {
+                    "200": {
+                        "description": "Pages list retrieved"
+                    }
+                }
+            }
+        },
+        "/api/list/pages-detail": {
+            "post": {
+                "tags": [
+                    "Dynamic Pages & CMS"
+                ],
+                "summary": "Get full page details with sections",
+                "description": "Get full page details with sections by slug",
+                "operationId": "getPageDetail",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "slug"
+                                ],
+                                "properties": {
+                                    "slug": {
+                                        "type": "string",
+                                        "example": "privacy-policy"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Page detail retrieved"
+                    }
+                }
+            }
+        },
+        "/api/list/page/{slug}": {
+            "get": {
+                "tags": [
+                    "Dynamic Pages & CMS"
+                ],
+                "summary": "Get dynamic page by slug",
+                "description": "Get an active dynamic page by slug passed in the URL",
+                "operationId": "getPageBySlug",
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "about-us"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Page detail retrieved"
+                    },
+                    "404": {
+                        "description": "Page not found"
+                    }
+                }
+            }
+        },
+        "/api/section-list": {
+            "post": {
+                "tags": [
+                    "Dynamic Pages & CMS"
+                ],
+                "summary": "Get sections list for a page",
+                "description": "Get list of sections belonging to a page",
+                "operationId": "getSectionList",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "page_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Sections retrieved"
+                    }
+                }
+            }
+        },
+        "/api/section-view": {
+            "post": {
+                "tags": [
+                    "Dynamic Pages & CMS"
+                ],
+                "summary": "Get single section details",
+                "description": "Get single section details and HTML blocks by ID",
+                "operationId": "viewSection",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Section details"
+                    }
+                }
+            }
+        },
+        "/api/footer-disclamier": {
+            "get": {
+                "tags": [
+                    "Dynamic Pages & CMS"
+                ],
+                "summary": "Get footer disclaimer content",
+                "description": "Get footer disclaimer text, copyright and company branding info",
+                "operationId": "getFooterDisclaimer",
+                "responses": {
+                    "200": {
+                        "description": "Footer content"
+                    }
+                }
+            }
+        },
+        "/api/list/blog-types": {
+            "get": {
+                "tags": [
+                    "Blogs & Knowledge Center"
+                ],
+                "summary": "Get all blog categories/types",
+                "description": "Get all blog categories/knowledge center types",
+                "operationId": "getBlogTypes",
+                "responses": {
+                    "200": {
+                        "description": "Blog types list"
+                    }
+                }
+            }
+        },
+        "/api/list/blogs": {
+            "post": {
+                "tags": [
+                    "Blogs & Knowledge Center"
+                ],
+                "summary": "Get list of blogs with pagination",
+                "description": "Get paginated list of blog articles",
+                "operationId": "getAllBlogs",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "category_id": {
+                                        "type": "string",
+                                        "example": ""
+                                    },
+                                    "page": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Blogs list"
+                    }
+                }
+            }
+        },
+        "/api/list/blogs-detail": {
+            "post": {
+                "tags": [
+                    "Blogs & Knowledge Center"
+                ],
+                "summary": "Get full blog post detail by slug",
+                "description": "Get full blog post article details by URL slug",
+                "operationId": "getBlogDetail",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "slug"
+                                ],
+                                "properties": {
+                                    "slug": {
+                                        "type": "string",
+                                        "example": "how-to-prepare-for-pmp"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Blog detail"
+                    }
+                }
+            }
+        },
+        "/api/list/recent-posts": {
+            "post": {
+                "tags": [
+                    "Blogs & Knowledge Center"
+                ],
+                "summary": "Get recent blog posts",
+                "description": "Get recent 5 blog posts",
+                "operationId": "getRecentBlogs",
+                "responses": {
+                    "200": {
+                        "description": "Recent blogs"
+                    }
+                }
+            }
+        },
+        "/api/blog-search": {
+            "post": {
+                "tags": [
+                    "Blogs & Knowledge Center"
+                ],
+                "summary": "Search blogs by keyword",
+                "description": "Search blogs matching keyword in title or content",
+                "operationId": "searchBlogs",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "keyword"
+                                ],
+                                "properties": {
+                                    "keyword": {
+                                        "type": "string",
+                                        "example": "scrum"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Search results"
+                    }
+                }
+            }
+        },
+        "/api/testimonials/list": {
+            "post": {
+                "tags": [
+                    "Testimonials & FAQs"
+                ],
+                "summary": "Get featured testimonials",
+                "description": "Get featured testimonials for homepage",
+                "operationId": "getTestimonialList",
+                "responses": {
+                    "200": {
+                        "description": "Testimonials list"
+                    }
+                }
+            }
+        },
+        "/api/testimonials/all-list": {
+            "post": {
+                "tags": [
+                    "Testimonials & FAQs"
+                ],
+                "summary": "Get all testimonials",
+                "description": "Get all learner reviews and testimonials",
+                "operationId": "getAllTestimonials",
+                "responses": {
+                    "200": {
+                        "description": "All testimonials"
+                    }
+                }
+            }
+        },
+        "/api/faq/list": {
+            "post": {
+                "tags": [
+                    "Testimonials & FAQs"
+                ],
+                "summary": "Get all general FAQs",
+                "description": "Get all general Frequently Asked Questions",
+                "operationId": "getFaqList",
+                "responses": {
+                    "200": {
+                        "description": "FAQ list"
+                    }
+                }
+            }
+        },
+        "/api/course/course-list": {
+            "post": {
+                "tags": [
+                    "Courses"
+                ],
+                "summary": "Get list of all active courses with pricing",
+                "description": "Returns list of courses filtered optionally by country, category, etc.",
+                "operationId": "getCourseList",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "country_id": {
+                                        "description": "Country ISO2 code (e.g. IN, US)",
+                                        "type": "string",
+                                        "example": "IN"
+                                    },
+                                    "category_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "List of courses retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Data fetched successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/courses/{courseSlug}/support/syllabus": {
+            "get": {
+                "tags": [
+                    "Courses"
+                ],
+                "summary": "Get course syllabus support page",
+                "description": "Returns the published syllabus support page of a course (found by course slug / url_title) with SEO and breadcrumb data",
+                "operationId": "getCourseSyllabus",
+                "parameters": [
+                    {
+                        "name": "courseSlug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "itil-foundation"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Syllabus fetched successfully"
+                    },
+                    "404": {
+                        "description": "Course not found / Syllabus not found for this course"
+                    }
+                }
+            }
+        },
+        "/api/courses/{courseSlug}/support/exam-format": {
+            "get": {
+                "tags": [
+                    "Courses"
+                ],
+                "summary": "Get course exam format support page",
+                "description": "Returns the published exam format support page of a course (found by course slug / url_title) with SEO, breadcrumb, and related pages data",
+                "operationId": "getCourseExamFormat",
+                "parameters": [
+                    {
+                        "name": "courseSlug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "project-management-professional-pmp"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Exam format fetched successfully"
+                    },
+                    "404": {
+                        "description": "Course not found / Exam format not found for this course"
+                    }
+                }
+            }
+        },
+        "/api/courses/{courseSlug}/quizzes": {
+            "get": {
+                "tags": [
+                    "Courses"
+                ],
+                "summary": "Get course quizzes and mock exams list",
+                "description": "Returns list of published quizzes and mock exams for a course (found by course slug)",
+                "operationId": "getCourseQuizzes",
+                "parameters": [
+                    {
+                        "name": "courseSlug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "project-management-professional-pmp"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Quizzes fetched successfully"
+                    },
+                    "404": {
+                        "description": "Course not found"
+                    }
+                }
+            }
+        },
+        "/api/courses/{courseSlug}/quizzes/{quizSlug}": {
+            "get": {
+                "tags": [
+                    "Courses"
+                ],
+                "summary": "Get single quiz / mock exam details",
+                "description": "Returns complete details of a specific published quiz or mock exam for a course (found by courseSlug and quizSlug)",
+                "operationId": "getCourseQuizDetail",
+                "parameters": [
+                    {
+                        "name": "courseSlug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "project-management-professional-pmp"
+                    },
+                    {
+                        "name": "quizSlug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "pmp-full-mock-exam-1"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Quiz details fetched successfully"
+                    },
+                    "404": {
+                        "description": "Course not found / Quiz not found for this course"
+                    }
+                }
+            }
+        },
+        "/api/courses/{courseSlug}/quizzes/{quizSlug}/questions": {
+            "get": {
+                "tags": [
+                    "Courses"
+                ],
+                "summary": "Get quiz questions and choices",
+                "description": "Returns list of questions and choices for a specific published quiz (correct answers and explanations safely excluded)",
+                "operationId": "getCourseQuizQuestions",
+                "parameters": [
+                    {
+                        "name": "courseSlug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "project-management-professional-pmp"
+                    },
+                    {
+                        "name": "quizSlug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "pmp-full-mock-exam-1"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Questions fetched successfully"
+                    },
+                    "404": {
+                        "description": "Course not found / Quiz not found for this course"
+                    }
+                }
+            }
+        },
+        "/api/courses/{courseSlug}/quizzes/{quizSlug}/start": {
+            "post": {
+                "tags": [
+                    "Courses"
+                ],
+                "summary": "Start or resume quiz attempt",
+                "description": "Start or resume an exam simulation attempt",
+                "operationId": "startQuizAttempt",
+                "parameters": [
+                    {
+                        "name": "courseSlug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "project-management-professional-pmp"
+                    },
+                    {
+                        "name": "quizSlug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "pmp-full-mock-exam-1"
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "mode": {
+                                        "type": "string",
+                                        "example": "exam"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Attempt started / resumed successfully"
+                    },
+                    "404": {
+                        "description": "Course or Quiz not found"
+                    }
+                }
+            }
+        },
+        "/api/quizzes/attempts/{attemptId}/save-answer": {
+            "post": {
+                "tags": [
+                    "Courses"
+                ],
+                "summary": "Save / update question answer",
+                "description": "Save or update answer and flag status for a single question",
+                "operationId": "saveQuizAnswer",
+                "parameters": [
+                    {
+                        "name": "attemptId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "question_id"
+                                ],
+                                "properties": {
+                                    "question_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "selected_option_id": {
+                                        "type": "integer",
+                                        "example": 2
+                                    },
+                                    "is_flagged": {
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "time_spent_seconds": {
+                                        "type": "integer",
+                                        "example": 45
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Answer saved successfully"
+                    }
+                }
+            }
+        },
+        "/api/quizzes/attempts/{attemptId}/submit": {
+            "post": {
+                "tags": [
+                    "Courses"
+                ],
+                "summary": "Submit exam attempt",
+                "description": "Submit exam attempt, grade all responses and calculate score",
+                "operationId": "submitQuizAttempt",
+                "parameters": [
+                    {
+                        "name": "attemptId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Exam submitted and graded successfully"
+                    }
+                }
+            }
+        },
+        "/api/quizzes/attempts/{attemptId}/result": {
+            "get": {
+                "tags": [
+                    "Courses"
+                ],
+                "summary": "Get exam attempt result and review",
+                "description": "Get detailed score breakdown, pass/fail status, and question-by-question review with explanations",
+                "operationId": "getQuizResult",
+                "parameters": [
+                    {
+                        "name": "attemptId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Result and review fetched successfully"
+                    }
+                }
+            }
+        },
+        "/api/course/view-course": {
+            "post": {
+                "tags": [
+                    "Courses"
+                ],
+                "summary": "Get detailed course page by URL slug/title",
+                "description": "Fetches full details of a course including curriculum, schedules, FAQs, trainers, overview, and pricing",
+                "operationId": "viewCourse",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "course_id"
+                                ],
+                                "properties": {
+                                    "course_id": {
+                                        "description": "Course ID",
+                                        "type": "integer",
+                                        "example": 8
+                                    },
+                                    "country_id": {
+                                        "description": "Country ISO2",
+                                        "type": "string",
+                                        "example": "IN"
+                                    },
+                                    "city_id": {
+                                        "description": "City ID",
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Detailed course information retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Course not found"
+                    }
+                }
+            }
+        },
+        "/api/course/category-and-course": {
+            "post": {
+                "tags": [
+                    "Courses"
+                ],
+                "summary": "Get categories with associated courses",
+                "description": "Returns grouped categories with active courses under each",
+                "operationId": "getCategoryAndCourses",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "country_id": {
+                                        "type": "string",
+                                        "example": "IN"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Categories and courses retrieved successfully"
+                    }
+                }
+            }
+        },
+        "/api/all-courses": {
+            "post": {
+                "tags": [
+                    "Courses"
+                ],
+                "summary": "Get all courses listing",
+                "description": "Get list of all active courses",
+                "operationId": "allCourses",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "country_id": {
+                                        "type": "string",
+                                        "example": "IN"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "All courses retrieved successfully"
+                    }
+                }
+            }
+        },
+        "/api/all-courses-content": {
+            "get": {
+                "tags": [
+                    "Courses"
+                ],
+                "summary": "Get full all courses page content",
+                "description": "Get full all-courses landing page dynamic content",
+                "operationId": "allCoursesContent",
+                "responses": {
+                    "200": {
+                        "description": "Content retrieved successfully"
+                    }
+                }
+            }
+        },
+        "/api/categorised-course-list": {
+            "post": {
+                "tags": [
+                    "Courses"
+                ],
+                "summary": "Get categorised course list",
+                "description": "Get courses filtered by category and country",
+                "operationId": "categorisedCourseList",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "category_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "country_id": {
+                                        "type": "string",
+                                        "example": "IN"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Categorised course list retrieved successfully"
+                    }
+                }
+            }
+        },
+        "/api/get-course-category/{name}": {
+            "post": {
+                "tags": [
+                    "Courses"
+                ],
+                "summary": "Get course category details by name",
+                "description": "Get category details and courses by category slug",
+                "operationId": "getCourseCategoryByName",
+                "parameters": [
+                    {
+                        "name": "name",
+                        "in": "path",
+                        "description": "Category slug/name",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "project-management"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Course category fetched successfully"
+                    }
+                }
+            }
+        },
+        "/api/course-plans": {
+            "post": {
+                "tags": [
+                    "Courses"
+                ],
+                "summary": "Get plans and pricing for a course",
+                "description": "Get plans, batches and pricing mapped to a course",
+                "operationId": "getCoursePlans",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "course_id"
+                                ],
+                                "properties": {
+                                    "course_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "country_id": {
+                                        "type": "string",
+                                        "example": "IN"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Plans retrieved successfully"
+                    }
+                }
+            }
+        },
+        "/api/fetch-features": {
+            "post": {
+                "tags": [
+                    "Courses"
+                ],
+                "summary": "Fetch features of a plan",
+                "description": "Fetch detailed features list of a plan",
+                "operationId": "fetchFeatures",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "plan_id"
+                                ],
+                                "properties": {
+                                    "plan_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Plan features fetched successfully"
+                    }
+                }
+            }
+        },
+        "/api/contact-store": {
+            "post": {
+                "tags": [
+                    "Lead & Enquiry Forms"
+                ],
+                "summary": "Submit contact form enquiry",
+                "description": "Submit user query or contact enquiry form",
+                "operationId": "storeContact",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "email",
+                                    "phone"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "John Doe"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "john@example.com"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "+919876543210"
+                                    },
+                                    "subject": {
+                                        "type": "string",
+                                        "example": "Course Enquiry"
+                                    },
+                                    "message": {
+                                        "type": "string",
+                                        "example": "I want to learn more about the course."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Enquiry submitted successfully"
+                    }
+                }
+            }
+        },
+        "/api/list/contact-details": {
+            "get": {
+                "tags": [
+                    "Lead & Enquiry Forms"
+                ],
+                "summary": "Get company contact details",
+                "description": "Get company contact details (address, phone, email)",
+                "operationId": "getContactDetails",
+                "responses": {
+                    "200": {
+                        "description": "Contact details retrieved"
+                    }
+                }
+            }
+        },
+        "/api/consultation-store": {
+            "post": {
+                "tags": [
+                    "Lead & Enquiry Forms"
+                ],
+                "summary": "Submit consultation enquiry",
+                "description": "Submit free consultation enquiry request",
+                "operationId": "storeConsultationEnquiry",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "email",
+                                    "phone"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Jane Doe"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "jane@example.com"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "+919876543210"
+                                    },
+                                    "message": {
+                                        "type": "string",
+                                        "example": "Looking for corporate training solutions."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Consultation enquiry submitted successfully"
+                    }
+                }
+            }
+        },
+        "/api/consulting/list": {
+            "post": {
+                "tags": [
+                    "Lead & Enquiry Forms"
+                ],
+                "summary": "Get consulting services list",
+                "description": "Get list of all consulting solutions & services",
+                "operationId": "getConsultingList",
+                "responses": {
+                    "200": {
+                        "description": "Consulting list retrieved"
+                    }
+                }
+            }
+        },
+        "/api/consulting/view": {
+            "post": {
+                "tags": [
+                    "Lead & Enquiry Forms"
+                ],
+                "summary": "View consulting service page",
+                "description": "View details of consulting service by slug",
+                "operationId": "viewConsultingPage",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "slug"
+                                ],
+                                "properties": {
+                                    "slug": {
+                                        "type": "string",
+                                        "example": "corporate-training"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Consulting page details"
+                    }
+                }
+            }
+        },
+        "/api/appointment-store": {
+            "post": {
+                "tags": [
+                    "Lead & Enquiry Forms"
+                ],
+                "summary": "Book/Schedule an appointment",
+                "description": "Book and schedule a 1-on-1 advisor appointment",
+                "operationId": "storeScheduleAppointment",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "email",
+                                    "phone",
+                                    "appointment_date"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Alex Smith"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "alex@example.com"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "+919876543210"
+                                    },
+                                    "appointment_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-10-15"
+                                    },
+                                    "appointment_time": {
+                                        "type": "string",
+                                        "example": "14:00"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Appointment booked successfully"
+                    }
+                }
+            }
+        },
+        "/api/learning-calendar-store": {
+            "post": {
+                "tags": [
+                    "Lead & Enquiry Forms"
+                ],
+                "summary": "Submit learning calendar request",
+                "description": "Submit request for full training and learning calendar schedule",
+                "operationId": "storeLearningCalendar",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "email",
+                                    "phone"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Sara Conner"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "sara@example.com"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "+919876543210"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Learning calendar request submitted"
+                    }
+                }
+            }
+        },
+        "/api/store-request-for-service": {
+            "post": {
+                "tags": [
+                    "Lead & Enquiry Forms"
+                ],
+                "summary": "Submit custom service request",
+                "description": "Submit specialized business enterprise service request",
+                "operationId": "storeRequestForService",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "email",
+                                    "phone",
+                                    "service_type"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Corporate Client"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "client@company.com"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "+919876543210"
+                                    },
+                                    "service_type": {
+                                        "type": "string",
+                                        "example": "Enterprise Upskilling"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Request submitted successfully"
+                    }
+                }
+            }
+        },
+        "/api/team-application-store": {
+            "post": {
+                "tags": [
+                    "Lead & Enquiry Forms"
+                ],
+                "summary": "Submit team or trainer job application",
+                "description": "Submit instructor or team member application",
+                "operationId": "storeTeamApplication",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "email",
+                                    "phone",
+                                    "position"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "David Miller"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "david@example.com"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "+919876543210"
+                                    },
+                                    "position": {
+                                        "type": "string",
+                                        "example": "Lead Agile Trainer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Application submitted successfully"
+                    }
+                }
+            }
+        },
+        "/api/course-master/category-list": {
+            "get": {
+                "tags": [
+                    "Masters & Locations"
+                ],
+                "summary": "Get list of course categories",
+                "description": "Get list of course categories from course master",
+                "operationId": "getCourseMasterCategories",
+                "responses": {
+                    "200": {
+                        "description": "Categories list retrieved"
+                    }
+                }
+            }
+        },
+        "/api/course-master/category-show": {
+            "post": {
+                "tags": [
+                    "Masters & Locations"
+                ],
+                "summary": "Show single course master category",
+                "description": "Show single course master category details",
+                "operationId": "showCourseMasterCategory",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "description": "Encrypted category ID",
+                                        "type": "string",
+                                        "example": "eyJpdiI6..."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Category details retrieved"
+                    }
+                }
+            }
+        },
+        "/api/dn-master/parent-list": {
+            "post": {
+                "tags": [
+                    "Masters & Locations"
+                ],
+                "summary": "Get Dynamic Master Parent List by master name",
+                "description": "Get dynamic master parent list by master_name (e.g. Course Category, Knowledge Center Category)",
+                "operationId": "getDynamicMasterParentList",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "master_name"
+                                ],
+                                "properties": {
+                                    "master_name": {
+                                        "type": "string",
+                                        "example": "Course Category"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Master list fetched"
+                    }
+                }
+            }
+        },
+        "/api/dn-master/parent-show": {
+            "post": {
+                "tags": [
+                    "Masters & Locations"
+                ],
+                "summary": "Get single Dynamic Master Parent item",
+                "description": "Get single Dynamic Master Parent item by encrypted ID",
+                "operationId": "getDynamicMasterParentShow",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "description": "Encrypted ID",
+                                        "type": "string",
+                                        "example": "eyJpdiI6..."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Master item details"
+                    }
+                }
+            }
+        },
+        "/api/dn-child-master/category-list": {
+            "get": {
+                "tags": [
+                    "Masters & Locations"
+                ],
+                "summary": "Get child master category list",
+                "description": "Get child master category list",
+                "operationId": "getChildMasterCategoryList",
+                "responses": {
+                    "200": {
+                        "description": "Child master list fetched"
+                    }
+                }
+            }
+        },
+        "/api/dn-child-master/category-show": {
+            "post": {
+                "tags": [
+                    "Masters & Locations"
+                ],
+                "summary": "Show single child master category",
+                "description": "Show single child master category",
+                "operationId": "showChildMasterCategory",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "example": "eyJpdiI6..."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Child category details"
+                    }
+                }
+            }
+        },
+        "/api/address/country-list": {
+            "get": {
+                "tags": [
+                    "Masters & Locations"
+                ],
+                "summary": "Get list of countries",
+                "description": "Get list of all supported countries with currencies and dial codes",
+                "operationId": "getCountryList",
+                "responses": {
+                    "200": {
+                        "description": "List of countries"
+                    }
+                }
+            }
+        },
+        "/api/address/country-show": {
+            "post": {
+                "tags": [
+                    "Masters & Locations"
+                ],
+                "summary": "Show country details by ID",
+                "description": "Show single country details by ID",
+                "operationId": "showCountry",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "example": "1"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Country details"
+                    }
+                }
+            }
+        },
+        "/api/address/state-list": {
+            "post": {
+                "tags": [
+                    "Masters & Locations"
+                ],
+                "summary": "Get list of states by country",
+                "description": "Get list of states for a country",
+                "operationId": "getStateList",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "country_id": {
+                                        "type": "string",
+                                        "example": "IN"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "List of states"
+                    }
+                }
+            }
+        },
+        "/api/address/state-show": {
+            "post": {
+                "tags": [
+                    "Masters & Locations"
+                ],
+                "summary": "Show state details",
+                "description": "Show single state details",
+                "operationId": "showState",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "example": "1"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "State details"
+                    }
+                }
+            }
+        },
+        "/api/address/city-list": {
+            "post": {
+                "tags": [
+                    "Masters & Locations"
+                ],
+                "summary": "Get list of cities by state/country",
+                "description": "Get list of cities by state ID",
+                "operationId": "getCityList",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "state_id": {
+                                        "type": "string",
+                                        "example": "1"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "List of cities"
+                    }
+                }
+            }
+        },
+        "/api/address/city-show": {
+            "post": {
+                "tags": [
+                    "Masters & Locations"
+                ],
+                "summary": "Show city details",
+                "description": "Show single city details",
+                "operationId": "showCity",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "example": "1"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "City details"
+                    }
+                }
+            }
+        },
+        "/api/course/promo-list": {
+            "get": {
+                "tags": [
+                    "Promo Codes"
+                ],
+                "summary": "Get list of active promotional codes",
+                "description": "Get list of active promotional coupon codes",
+                "operationId": "getPromoList",
+                "responses": {
+                    "200": {
+                        "description": "Promo codes list"
+                    }
+                }
+            }
+        },
+        "/api/course/verify-promo": {
+            "post": {
+                "tags": [
+                    "Promo Codes"
+                ],
+                "summary": "Verify and apply promo code discount",
+                "description": "Verify coupon code validity and calculate discount amount",
+                "operationId": "verifyPromoCode",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "promo_code"
+                                ],
+                                "properties": {
+                                    "promo_code": {
+                                        "type": "string",
+                                        "example": "DISCOUNT10"
+                                    },
+                                    "course_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "amount": {
+                                        "type": "number",
+                                        "example": 1000
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Promo code valid"
+                    },
+                    "400": {
+                        "description": "Invalid or expired promo code"
+                    }
+                }
+            }
+        },
+        "/api/state-url": {
+            "get": {
+                "tags": [
+                    "Masters & Locations"
+                ],
+                "summary": "Get all SEO state URLs",
+                "description": "Get all SEO friendly state/location URLs",
+                "operationId": "getStateUrls",
+                "responses": {
+                    "200": {
+                        "description": "List of state URLs"
+                    }
+                }
+            }
+        },
+        "/api/enrollments-store": {
+            "post": {
+                "tags": [
+                    "Enrollments & Payments"
+                ],
+                "summary": "Store student course enrollment",
+                "description": "Submit course enrollment and learner information before payment",
+                "operationId": "storeEnrollment",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "course_id",
+                                    "name",
+                                    "email",
+                                    "phone"
+                                ],
+                                "properties": {
+                                    "course_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Alice Brown"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "alice@example.com"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "+919876543210"
+                                    },
+                                    "plan_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "schedule_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "amount": {
+                                        "type": "number",
+                                        "example": 499
+                                    },
+                                    "currency": {
+                                        "type": "string",
+                                        "example": "INR"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Enrollment created successfully"
+                    }
+                }
+            }
+        },
+        "/api/enrollments-update": {
+            "post": {
+                "tags": [
+                    "Enrollments & Payments"
+                ],
+                "summary": "Validate and update enrollment payment status",
+                "description": "Update and validate payment reference on an enrollment",
+                "operationId": "updateEnrollmentPayment",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "payment_id",
+                                    "order_id"
+                                ],
+                                "properties": {
+                                    "payment_id": {
+                                        "type": "string",
+                                        "example": "pay_N123456789"
+                                    },
+                                    "order_id": {
+                                        "type": "string",
+                                        "example": "order_N123456789"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Payment validated successfully"
+                    }
+                }
+            }
+        },
+        "/api/download": {
+            "post": {
+                "tags": [
+                    "Enrollments & Payments"
+                ],
+                "summary": "Generate and download enrollment Invoice PDF",
+                "description": "Generate PDF receipt and return download response",
+                "operationId": "downloadInvoicePdf",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "enrollment_id"
+                                ],
+                                "properties": {
+                                    "enrollment_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "PDF generated successfully"
+                    }
+                }
+            }
+        },
+        "/api/payment/create-order": {
+            "post": {
+                "tags": [
+                    "Enrollments & Payments"
+                ],
+                "summary": "Create Razorpay payment order",
+                "description": "Create Razorpay order id for frontend checkout checkout",
+                "operationId": "createRazorpayOrder",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "currency",
+                                    "quantity"
+                                ],
+                                "properties": {
+                                    "currency": {
+                                        "type": "string",
+                                        "example": "INR"
+                                    },
+                                    "plain_id": {
+                                        "description": "Plan Mapping ID",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "quantity": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "promo_code": {
+                                        "type": "string",
+                                        "example": "DISCOUNT10"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Razorpay order created with order_id and key",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "order_id": {
+                                            "type": "string",
+                                            "example": "order_M4v2F9vL1"
+                                        },
+                                        "payment_id": {
+                                            "type": "string",
+                                            "example": "order_rcpt_1696078800"
+                                        },
+                                        "amount": {
+                                            "type": "number",
+                                            "example": 49900
+                                        },
+                                        "key": {
+                                            "type": "string",
+                                            "example": "rzp_test_xxxx"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/payment/verify-payment": {
+            "post": {
+                "tags": [
+                    "Enrollments & Payments"
+                ],
+                "summary": "Verify Razorpay payment signature and complete enrollment",
+                "description": "Verify HMAC signature and finalize course registration",
+                "operationId": "verifyRazorpayPayment",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "razorpay_order_id",
+                                    "razorpay_payment_id",
+                                    "razorpay_signature"
+                                ],
+                                "properties": {
+                                    "razorpay_order_id": {
+                                        "type": "string",
+                                        "example": "order_M4v2F9vL1"
+                                    },
+                                    "razorpay_payment_id": {
+                                        "type": "string",
+                                        "example": "pay_M4v3G0wM2"
+                                    },
+                                    "razorpay_signature": {
+                                        "type": "string",
+                                        "example": "e2b109c123..."
+                                    },
+                                    "enrollment_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Payment verified and invoice generated"
+                    }
+                }
+            }
+        },
+        "/api/payment/initiate": {
+            "post": {
+                "tags": [
+                    "Enrollments & Payments"
+                ],
+                "summary": "Initiate payment transaction",
+                "description": "Initiate generic payment transaction",
+                "operationId": "initiatePayment",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "amount",
+                                    "currency"
+                                ],
+                                "properties": {
+                                    "amount": {
+                                        "type": "number",
+                                        "example": 1000
+                                    },
+                                    "currency": {
+                                        "type": "string",
+                                        "example": "INR"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Payment transaction initiated"
+                    }
+                }
+            }
+        },
+        "/api/payment/payment/status": {
+            "get": {
+                "tags": [
+                    "Enrollments & Payments"
+                ],
+                "summary": "Check transaction payment status",
+                "description": "Check transaction payment status",
+                "operationId": "getPaymentStatus",
+                "parameters": [
+                    {
+                        "name": "transaction_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Payment status retrieved"
+                    }
+                }
+            }
+        },
+        "/api/payment/ccavenue/pay": {
+            "post": {
+                "tags": [
+                    "Enrollments & Payments"
+                ],
+                "summary": "Initiate CCAvenue payment gateway flow",
+                "description": "Initiate CCAvenue payment gateway flow with encrypted form data",
+                "operationId": "ccAvenuePay",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "amount",
+                                    "currency"
+                                ],
+                                "properties": {
+                                    "amount": {
+                                        "type": "number",
+                                        "example": 1000
+                                    },
+                                    "currency": {
+                                        "type": "string",
+                                        "example": "INR"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "CCAvenue encrypted parameters and redirect URL returned"
+                    }
+                }
+            }
+        },
+        "/api/payment/ccavenue/callback": {
+            "post": {
+                "tags": [
+                    "Enrollments & Payments"
+                ],
+                "summary": "CCAvenue webhook callback handler",
+                "description": "CCAvenue webhook/callback handler for instant server-to-server notifications",
+                "operationId": "ccAvenueCallback",
+                "responses": {
+                    "200": {
+                        "description": "Callback processed"
+                    }
+                }
+            }
+        },
+        "/api/payment/ccavenue/response": {
+            "post": {
+                "tags": [
+                    "Enrollments & Payments"
+                ],
+                "summary": "CCAvenue customer response page handler",
+                "description": "CCAvenue customer return response handler",
+                "operationId": "ccAvenueResponse",
+                "responses": {
+                    "200": {
+                        "description": "Response decrypted and transaction completed"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+                "description": "Enter JWT Bearer token (e.g. Bearer eyJhbGciOi...)"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Authentication",
+            "description": "User and Admin Login, OTP Generation and Verification"
+        },
+        {
+            "name": "Courses",
+            "description": "Courses Listing, Details, Categories and Plans"
+        },
+        {
+            "name": "Masters & Locations",
+            "description": "Master Categories, Parent/Child Master Lists, Country, State and City lists"
+        },
+        {
+            "name": "Promo Codes",
+            "description": "Promo code listing and validation"
+        },
+        {
+            "name": "Dynamic Pages & CMS",
+            "description": "Pages, Dynamic CMS Sections, Footers and SEO State URLs"
+        },
+        {
+            "name": "Blogs & Knowledge Center",
+            "description": "Blog lists, types, search and detailed articles"
+        },
+        {
+            "name": "Lead & Enquiry Forms",
+            "description": "Contact submissions, Consultation enquiries, Appointments, Learning calendars and Team applications"
+        },
+        {
+            "name": "Testimonials & FAQs",
+            "description": "Student/Client testimonials and Frequently Asked Questions"
+        },
+        {
+            "name": "Enrollments & Payments",
+            "description": "Course enrollments, Razorpay & CCAvenue gateways, payment verification and invoice downloads"
+        }
+    ],
+    "security": [
+        {
+            "bearerAuth": []
+        }
+    ]
+}

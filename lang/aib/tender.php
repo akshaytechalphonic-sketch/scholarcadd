@@ -1,0 +1,30 @@
+<?php
+
+return [
+    'tender-category'=>'Tender Categories',
+    'tender-maneger'=>'Home / Tender Manager /',
+    'tender-cat' =>'Tender Category',
+    'action' =>'Action',
+    'referencecode'=>'Reference Code',
+    'cat-name'=>'Category Name',
+    'name' =>'Name',
+    'username'=>'User Name',
+    'date&time'=>'Date & Time',
+    'status'=>'Status',
+    'active'=>'Active',
+    'not-active'=>'Not Active',
+    'category-dis'=>'Category Discription',
+    'cat-status'=>'Select Category Status',
+    'cat-choose'=>'Choose Option',
+    'add-cat'=>'Add Categories',
+    'submit'=>'Submit',
+    'discard'=>'Discard',
+    'edit-category'=>'Edit Category',
+    'description'=>'Description',
+    'subcategoryname'=>'Sub Category Name',
+    'tender-sub-cate'=>'Tender Sub Categories',
+    'select-cat'=>'Select Category',
+    'sub-category-name'=>'Sub Category Name',
+    'choose-of-category-name'=>'Choose Category Name',
+    'create-sub-category'=>'Create Sub Category'
+];

@@ -1,0 +1,394 @@
+@extends('layouts.app')
+@section('css')
+    @include('layouts.select2css')
+    @include('layouts.summer_note_css')
+    <style>
+        .h-20 {
+            height: 3rem !important;
+        }
+
+        /* hide selected tags */
+        .select-all-mode .select2-selection__choice {
+            display: none !important;
+        }
+
+        /* make selection area a flex container */
+        .select-all-mode .select2-selection--multiple {
+            display: flex !important;
+            align-items: center !important;
+            /* 🔥 vertical center */
+        }
+
+        /* rendered container full height */
+        .select-all-mode .select2-selection__rendered {
+            display: flex !important;
+            align-items: center !important;
+            width: 100%;
+            padding-left: 12px;
+            /* optional: same as input */
+        }
+
+        /* text */
+        .select-all-mode .select2-selection__rendered::before {
+            content: "All Selected";
+            color: #374151;
+            font-size: 14px;
+        }
+    </style>
+@endsection
+@section('content')
+    <div>
+        @php echo breadcrums('Course.Course Add',['common.home','Course.Course List','Course.Course Add'],['dashboard','bank-list']) @endphp
+    @section('back_button')
+        @php echo back_button('back') @endphp
+    @endsection
+    @if ($data)
+        <form action="{{ route('course-update') }}" method="post" enctype="multipart/form-data">
+        @else
+            <form action="{{ route('course-store') }}" method="post" enctype="multipart/form-data">
+    @endif
+    @csrf
+    @if ($data)
+        <input type="hidden" class="limited-input form-input mt-1" value="{{ encrypt($data?->id) }}" data-maxlength="100"
+            name="course_id" required>
+    @endif
+    <div class="text-xs w-full  bg-white border rounded-md p-4">
+
+        <div class="grid grid-cols-2 md:grid-cols-2 gap-5 w-full my-2">
+            <div class="w-full">
+                <label for=""
+                    class="text-sm font-semibold text-black">{{ __('Course.Course Name(Short Form)') }}
+                    <span class="text-red-500 font-bold">*</span></label>
+                <input type="text" class="limited-input form-input mt-1" value="{{ $data?->course_title }}"
+                    data-maxlength="100" name="course_title" required>
+
+                <div class="char-count text-xs text-gray-500 text-right mt-1 ">0/100</div>
+            </div>
+
+            <div class=" relative z-10 w-full">
+                <label class="text-sm font-semibold text-black">
+                    {{ __('Course.Category') }}
+                    <span class="text-red-500 font-bold">*</span>
+                </label>
+                <select id="category_id" class="select-single mt-1" style="width:100%" name="course_category_id"
+                    required>
+                    <option value="" disabled>Select Category..</option>
+                    @foreach ($categories as $category)
+                        <option value="{{ $category?->id }}" @if (old('category_id', $data?->course_category_id) == $category->id) selected @endif>
+                            {{ $category?->category_name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            @if (!request()->has('course-update'))
+                <div class="relative z-10 w-full">
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm font-semibold text-black flex items-center gap-1">
+                            {{ __('Course.country') }}
+                            <span class="text-red-500 font-bold">*</span>
+                        </label>
+
+                        <!-- Checkbox -->
+                        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                            <span>Select All</span>
+                            <input type="checkbox" id="selectAllCountries"
+                                class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+
+                        </label>
+                    </div>
+                    <select id="country_id" class="select-country w-full" multiple="multiple" name="country_id[]"
+                        required>
+                        <option value="" disabled>Select Country.</option>
+                        @foreach ($counrty as $counrties)
+                            <option value="{{ $counrties?->id }}">
+                                {{ $counrties?->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
+            @if (!request()->has('course-update'))
+                <div class="w-full">
+                    <label for="" class="text-sm font-semibold text-black">{{ __('Course.Url Title') }}
+                        <span class="text-red-500 font-bold">*</span></label>
+                    <input type="text" class="form-input mt-1" value="{{ $data?->url_title }}" data-maxlength="100"
+                        name="url_title" only required>
+
+                    <div class="char-count text-xs text-gray-500 text-right mt-1 ">0/100</div>
+                </div>
+            @endif
+            <div class="w-full">
+                <label for="" class="text-sm font-semibold text-black">{{ __('Course.Course Title') }}
+                    <span class="text-red-500 font-bold">*</span></label>
+                <input type="text" class="limited-input form-input mt-1" value="{{ $data?->course_short_name }}"
+                    data-maxlength="100" name="course_short_name" required>
+
+                <div class="char-count text-xs text-gray-500 text-right mt-1 ">0/100</div>
+            </div>
+            {{--  <div class="w-full">
+                <label for="" class="text-sm font-semibold text-black">{{ __('Course.Banner BG Color') }}
+                    <span class="text-red-500 font-bold">*</span></label>
+                <input type="color" class="limited-input form-input mt-1" value="{{ $data?->banner_bg_color }}"
+                    data-maxlength="100" name="banner_bg_color" required>
+
+                <div class="char-count text-xs text-gray-500 text-right mt-1 ">0/100</div>
+            </div>  --}}
+
+
+            <div class="relative z-10 w-full">
+                <label for="" class=" text-sm font-semibold text-black">{{ __('Course.Is Demand Course ?') }}
+                    <span class="text-red-500 font-bold">*</span></label>
+                <select class="select-single mt-1" style="width:100%" name="is_demand_course" required>
+                    <option value="Yes" @if ($data?->is_demand_course == 'Yes' || !$data) selected @endif>Yes </option>
+                    <option value="No" @if ($data?->is_demand_course == 'No') selected @endif>No </option>
+                    </option>
+                </select>
+            </div>
+
+        </div>
+    </div>
+    <div class="text-xs w-full  bg-white border mt-4 rounded-md p-4">
+        <div class="w-full">
+            <label for="" class="text-sm font-semibold text-black">{{ __('Course.Short Description') }}
+                <textarea rows="8" type="text" class="form-input mt-1" value="" name="short_description"
+                    data-maxlength="1000">{{ $data?->short_description }}</textarea>
+                <div class="char-count text-xs text-gray-500 text-right mt-1">0/1000</div>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-2 gap-5 w-full my-2">
+
+            {{-- ///////// Feature Image Upload --}}
+            <div class="w-full mt-4">
+                <label for="feature_image" class="text-sm font-semibold text-black">
+                    {{ __('Course.Feature Image') }}
+                </label>
+                <div class="flex items-start gap-6 mt-2">
+                    {{-- Left: File Input --}}
+                    <div class="flex-1">
+                        <input id="feature_image" type="file" class="form-input mt-1 w-full" name="feature_image"
+                            accept=".jpg, .jpeg, .png">
+                        <p id="feature-image-error" class="text-red-500 text-xs mt-1 hidden"></p>
+                    </div>
+                    {{-- Right: Uploaded Image Preview --}}
+                    @if ($data?->header_image)
+                        <div class="w-[160px]">
+
+                            <div class="p-2 rounded-md border border-gray-300 bg-white">
+                                <a target="_blank"
+                                    href="{{ route('secure-documents', ['path' => $data?->header_image]) }}">
+                                    <img class="h-[60px] w-full object-contain rounded-md"
+                                        src="{{ route('secure-documents', ['path' => $data?->header_image]) }}"
+                                        alt="Feature Image" style="width: 220px">
+                                </a>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+        </div>
+        <hr />
+        <div class="tab-wrapper flex-1 mt-4 rounded-md">
+            <div class="tabs mb-2 bg-gray-50">
+                <div class="flex flex-wrap gap-2 w-full border-b border-gray-200">
+                    <button type="button" data-tab="1"
+                        class="tab-btn flex-none text-center border-b-2 text-black py-3 text-sm px-4 focus:outline-none font-medium">
+                        {{ __('Course.Overview') }} </button>
+                </div>
+            </div>
+            <div class=" ">
+                <div class="tab-content  rounded-sm  ">
+                    <div data-content="1" class="tab-pane hidden ">
+                        <div class="p-2">
+                            <div class="w-full mt-4">
+                                <label for=""
+                                    class="text-sm font-semibold text-black">{{ __('Course.Overview') }}
+                                </label>
+                                <div class="mt-3">
+                                    <textarea type="text" class="form-input mt-1 description-validation-summernote summernote" name="overview">{!! $data?->overview !!}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="p-2">
+            <div class="w-full mt-4">
+                <div class="flex justify-between pb-3">
+                    <div>
+                        <h1 class="text-lg font-bold text-gray-700">{{ __('Course.SEO Content') }}</h1>
+                        <hr />
+                    </div>
+                </div>
+                <div class="w-full">
+                    <label for="" class="text-sm font-semibold text-black">{{ __('Course.Page Title') }}
+                        <span class="text-red-500 font-bold">*</span></label>
+                    <input type="text" class="limited-input form-input mt-1" value="{{ $data?->page_title }}"
+                        data-maxlength="100" name="page_title" required>
+                    </input>
+                    <div class="char-count text-xs text-gray-500 text-right mt-1 ">0/100</div>
+                </div>
+                <div class="w-full">
+                    <label for="" class="text-sm font-semibold text-black">{{ __('Course.Meta Keywords') }}
+                        <textarea type="text" class="form-input mt-1 description-validation" value="" name="meta_keywords"
+                            data-maxlength="200">{{ $data?->meta_keywords }}</textarea>
+                        <div class="char-count text-xs text-gray-500 text-right mt-1">0/200</div>
+                </div>
+                <div class="w-full">
+                    <label for=""
+                        class="text-sm font-semibold text-black">{{ __('Course.Meta Description') }}
+                        <textarea type="text" class="form-input mt-1 description-validation" value="" name="meta_description"
+                            data-maxlength="200">{{ $data?->meta_description }}</textarea>
+                        <div class="char-count text-xs text-gray-500 text-right mt-1">0/200</div>
+                </div>
+
+
+            </div>
+        </div>
+
+        <div class="flex justify-end mt-4">
+            <div class="flex gap-2">
+                <button type="reset" class="btn-primary-sm flex items-center gap-1">
+                    <i class="ri-refresh-line"></i>
+                    {{ __('common.reset') }}
+                </button>
+                <button type="submit" class="btn-success-sm flex items-center gap-1">
+                    <i class="ri-check-line"></i>
+                    {{ __('common.submit') }}
+                </button>
+            </div>
+        </div>
+
+        </form>
+    </div>
+</div>
+@endsection
+@section('scripts')
+@include('layouts.select2js')
+@include('layouts.tab2_js')
+@include('layouts.summer_note_js')
+@include('layouts.image_validation_js')
+
+<script>
+    $(document).ready(function() {
+
+        const $select = $('#country_id');
+        let selectAllActive = false;
+
+        // Checkbox inside dropdown
+        function formatOption(option) {
+            if (!option.id) return option.text;
+
+            return $(`
+            <span>
+                <input type="checkbox" class="mr-2"/>
+                ${option.text}
+            </span>
+        `);
+        }
+
+        // Init Select2
+        $select.select2({
+            placeholder: "Select Country...",
+            closeOnSelect: false,
+            templateResult: formatOption,
+
+        });
+
+        // Sync checkbox on select / unselect
+        $select.on('select2:select select2:unselect', function() {
+            syncDropdownCheckboxes();
+        });
+
+        // 🔥 THIS IS THE KEY FIX
+        $select.on('select2:open', function() {
+            syncDropdownCheckboxes();
+        });
+
+        function syncDropdownCheckboxes() {
+            setTimeout(() => {
+                $('.select2-results__option').each(function() {
+                    const selected = $(this).attr('aria-selected') === 'true';
+                    $(this).find('input[type="checkbox"]').prop('checked', selected);
+                });
+            }, 0);
+        }
+
+        // Select All checkbox
+        $('#selectAllCountries').on('change', function() {
+
+            const $select2 = $select.next('.select2');
+
+            if (this.checked) {
+                selectAllActive = true;
+
+                const allValues = $select.find('option')
+                    .map(function() {
+                        return this.value;
+                    }).get();
+
+                $select.val(allValues).trigger('change');
+                $select2.addClass('select-all-mode');
+
+            } else {
+                selectAllActive = false;
+
+                // 🔥 HARD RESET
+                $select.find('option').prop('selected', false);
+                $select.val([]).trigger('change');
+                $select2.removeClass('select-all-mode');
+            }
+        });
+
+    });
+</script>
+
+<script>
+    function validateFileInput(inputId, errorId, allowedTypes, maxSizeMB) {
+        const input = document.getElementById(inputId);
+        const error = document.getElementById(errorId);
+        const maxSize = maxSizeMB * 1024 * 1024;
+
+        input.addEventListener('change', function() {
+            error.textContent = '';
+            error.classList.add('hidden');
+
+            const file = input.files[0];
+            if (!file) return;
+
+            if (!allowedTypes.includes(file.type)) {
+                error.textContent =
+                    `Invalid file type. Allowed: ${allowedTypes.map(t => t.split('/')[1]).join(', ').toUpperCase()}`;
+                error.classList.remove('hidden');
+                input.value = '';
+                return;
+            }
+
+            if (file.size > maxSize) {
+                error.textContent = `File "${file.name}" exceeds the ${maxSizeMB}MB limit.`;
+                error.classList.remove('hidden');
+                input.value = '';
+                return;
+            }
+        });
+    }
+
+    // Apply validation
+    validateFileInput('feature_image', 'feature-image-error', ['image/jpeg', 'image/png'], 2);
+    validateFileInput('brochure_file', 'brochure-error', ['application/pdf'], 2);
+</script>
+<script>
+    $(document).ready(function() {
+        $('#selectAllCountries').change(function() {
+            if ($(this).is(':checked')) {
+                $('#country_id option:not(:disabled)').prop('selected', true);
+            } else {
+                $('#country_id option').prop('selected', false);
+            }
+            $('#country_id').trigger('change');
+        });
+
+        $('#country_id').trigger('change');
+    });
+</script>
+@endsection

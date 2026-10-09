@@ -1,0 +1,15 @@
+<?php
+
+namespace Modules\DynamicMaster\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class SectionDetail extends Model
+{
+    use HasFactory;
+
+    protected $table = "section_details";
+    protected $guarded = [];
+
+}

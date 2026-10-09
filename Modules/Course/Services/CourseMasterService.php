@@ -1,0 +1,723 @@
+<?php
+
+namespace Modules\Course\Services;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Modules\Course\Repositories\CourseMasterRepository;
+use Yajra\DataTables\DataTables;
+
+class CourseMasterService extends Controller
+{
+    protected CourseMasterRepository $repository;
+
+    public function __construct(CourseMasterRepository $repository)
+    {
+        $this->repository = $repository;
+    }
+
+    public function CourseList(Request $request)
+    {
+        try {
+            if ($request->ajax()) {
+                $query = $this->repository->CourseList();
+
+                $query = $this->repository->CourseFilters($query, $request)->orderBy('id', 'desc');
+                if (! $request->custom_filter || ! in_array('tab', $request->custom_filter)) {
+                    $count_data = $this->repository->getAllCount($request);
+                } else {
+                    $count_data = null;
+                }
+                if ($request->has('search') && $request->search['value']) {
+                    $search = $request->search['value'];
+                    $query->where(function ($q) use ($search) {
+                        $q->where('course_title', 'like', "%$search%");
+                        $q->orWhere('short_description', 'like', "%$search%");
+                        $q->orWhere('course_short_name', 'like', "%$search%");
+                    });
+                }
+
+                return DataTables::of($query)
+                    ->addColumn('course_short_name', function ($row) {
+                        return $row?->course_short_name;
+                    })
+                    ->addColumn('is_demand_course', function ($row) {
+                        return status_check($row->is_demand_course);
+                    })
+                    ->addColumn('short_description', function ($row) {
+                        return Str::limit($row->short_description ?? 'N/A', 30);
+                    })
+                    ->addColumn('course_title', function ($row) {
+                        return Str::limit($row->course_title ?? 'N/A', 20);
+                    })
+                    ->addColumn('created_at', function ($row) {
+                        return date_time_formate($row?->created_at);
+                    })
+                    ->addColumn('course_category', function ($row) {
+                        return $row?->course_category?->category_name ?? 'N/A';
+                    })
+
+                    ->addColumn('actions', function ($row) {
+                        $incr = encrypt($row?->id);
+                        $updateonly_url = route('course-edit', ['id' => $incr, 'course-update'=>'course-update-only']);
+                        $edit_url = route('course-edit', ['id' => $incr]);
+
+                        $dropdown = '<div class="dropdown relative inline-block bg-gray-100 hover:bg-gray-200 p-1 rounded-sm border">
+                            <button onClick="toggleDropdown(this)" class="inline-flex items-center text-sm font-medium text-gray-900" type="button">
+                                <i class="ri-more-2-fill"></i>
+                            </button>
+                            <div class="dropdown-menu absolute right-0 mt-2 z-10 hidden bg-white divide-y divide-gray-100 rounded-md border w-[240px]">
+                                <ul class="text-sm text-black">';
+
+                        $dropdown .= '<li><a href="'.$updateonly_url.'" class="block px-6 py-2 hover:bg-gray-100"><i class="ri-pencil-line mr-2"></i>Course update only</a></li>';
+                        $dropdown .= '<li><a href="'.$edit_url.'" class="block px-6 py-2 hover:bg-gray-100"><i class="ri-pencil-line mr-2"></i>update and Gen dynamic course</a></li>';
+
+                        $dropdown .= '</ul></div></div>';
+
+                        return $dropdown;
+                    })
+                    ->rawColumns(['actions', 'short_description', 'course_title', 'course_category', 'is_demand_course', 'course_short_name'])
+                    ->with([
+                        'count_data' => $count_data,
+                    ])
+                    ->make(true);
+            }
+
+            return view('Course::Master.Course.index');
+        } catch (\Exception $e) {
+            catch_log($e, 'Getting list of Course Course data');
+            if ($request->ajax()) {
+                return response()->json(
+                    [
+                        'status' => false,
+                        'error' => $e->getMessage(),
+                    ],
+                    500
+                );
+            }
+
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function CourseCreate($id, $view = null)
+    {
+        try {
+            $data = $this->repository->CourseCreate($id, $view);
+
+            return $data;
+        } catch (\Exception $e) {
+            catch_log($e, 'Viewing/creating/Editing Course Course');
+
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function CourseStore(Request $request)
+    {
+        try {
+            $data = $this->repository->CourseStore($request);
+            if (! $data['status']) {
+                return back()->with('error', $data['message'])->withInput();
+            }
+
+            return redirect()->route('course-list', ['id' => encrypt($data['data']->id)])->with('success', $data['message']);
+        } catch (\Exception $e) {
+            catch_log($e, 'Creating Course Course');
+
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function CourseDestroy($id)
+    {
+        try {
+            $data = $this->repository->CourseDestroy($id);
+            if (! $data['status']) {
+                return response()->json(['status' => false, 'error' => $data['message']]);
+            }
+            if (request()->ajax()) {
+                return response()->json(['status' => true, 'message' => $data['message']]);
+            }
+
+            return response()->json(['status' => true, 'message' => $data['message']]);
+        } catch (\Exception $e) {
+            catch_log($e, 'Deleting Course Course');
+
+            return response()->json(['status' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function get_filtered_Course(Request $request)
+    {
+        try {
+            $data = $this->repository->get_filtered_Course($request);
+
+            return response()->json(['status' => true, 'data' => $data]);
+        } catch (\Exception $e) {
+            catch_log($e, 'Getting filtered Course Course');
+
+            return response()->json(['status' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    // Location Code
+
+    public function countryList(Request $request)
+    {
+        try {
+            if ($request->ajax()) {
+                $query = $this->repository->countryList();
+                $query = $this->repository->CountryFilters($query, $request)->orderBy('id', 'desc');
+
+                if ($request->has('search') && $request->search['value']) {
+                    $search = $request->search['value'];
+                    $query->where(function ($q) use ($search) {
+                        $q->where('name', 'like', "%$search%");
+                    });
+                }
+
+                return DataTables::of($query)
+                    ->addColumn('name', function ($row) {
+                        return $row?->name;
+                    })
+
+                   ->addColumn('Iso2', function ($row) {
+                        return $row?->iso2;
+                    })
+
+                    ->addColumn('coursePrice', function ($row) {
+                        return $row?->currency_symbol.' '.$row?->value_in_dollar;
+                    })
+                    ->addColumn('created_at', function ($row) {
+                        return date_time_formate($row?->created_at);
+                    })
+                    ->addColumn('created_by', function ($row) {
+                        return $row?->creator?->name ?? 'N/A';
+                    })
+                    ->addColumn('actions', function ($row) {
+                        $incr = encrypt($row?->id);
+                        // $view_url = route('course-country-view', ['id' => $incr]);
+                        $edit_url = route('course-country-edit', ['id' => $incr]);
+
+                        $dropdown = '<div class="dropdown relative inline-block bg-gray-100 hover:bg-gray-200 p-1 rounded-sm border">
+                            <button onClick="toggleDropdown(this)" class="inline-flex items-center text-sm font-medium text-gray-900" type="button">
+                                <i class="ri-more-2-fill"></i>
+                            </button>
+                            <div class="dropdown-menu absolute right-0 mt-2 z-10 hidden bg-white divide-y divide-gray-100 rounded-md border w-[240px]">
+                                <ul class="text-sm text-black">';
+
+                        // $dropdown .= '<li><a href="'.$view_url.'" class="block px-6 py-2 hover:bg-gray-100"><i class="ri-eye-line mr-2"></i>View</a></li>';
+                        $dropdown .= '<li><a href="'.$edit_url.'" class="block px-6 py-2 hover:bg-gray-100"><i class="ri-pencil-line mr-2"></i>Edit</a></li>';
+                        // $dropdown .= '<li><button onclick="confirmDeleteHeader(\''.$incr.'\')" class="block w-full text-left px-6 py-2 hover:bg-gray-100 text-red-600">
+                        //             <i class="ri-delete-bin-line mr-2"></i>Delete</button></li>';
+
+                        $dropdown .= '</ul></div></div>';
+
+                        return $dropdown;
+                    })
+                    ->rawColumns(['name', 'actions', 'Iso2', 'coursePrice'])
+                    ->make(true);
+            }
+
+            return view('Course::Master.Country.index');
+        } catch (\Exception $e) {
+            catch_log($e, 'Getting list of Course Location data');
+            if ($request->ajax()) {
+                return response()->json(
+                    [
+                        'status' => false,
+                        'error' => $e->getMessage(),
+                    ],
+                    500
+                );
+            }
+
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function countryCreate($id, $view = null)
+    {
+        try {
+            $data = $this->repository->countryCreate($id, $view);
+
+            return $data;
+        } catch (\Exception $e) {
+            catch_log($e, 'Viewing/creating/Editing Course Location');
+
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function countryStore(Request $request)
+    {
+        try {
+            $data = $this->repository->updateCountry($request);
+            if (! $data['status']) {
+                return back()->with('error', $data['message'])->withInput();
+            }
+
+            return redirect()->route('course-country-list', ['id' => encrypt($data['data']->id)])->with('success', $data['message']);
+        } catch (\Exception $e) {
+            catch_log($e, 'Creating Course Location');
+
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    // =========== location ========
+
+    public function locationCreate($id, $view = null)
+    {
+        try {
+            $data = $this->repository->locationCreate($id, $view);
+
+            return $data;
+        } catch (\Exception $e) {
+            catch_log($e, 'Viewing/creating/Editing Course Location');
+
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function locationStore(Request $request)
+    {
+        try {
+            $data = $this->repository->locationStore($request);
+            if (! $data['status']) {
+                return back()->with('error', $data['message'])->withInput();
+            }
+
+            return redirect()->route('course-country-view', ['id' => encrypt($data['data']->id)])->with('success', $data['message']);
+        } catch (\Exception $e) {
+            catch_log($e, 'Creating Course Location');
+
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    // Course State Code
+
+    public function stateList(Request $request)
+    {
+        try {
+            if ($request->ajax()) {
+                $query = $this->repository->stateList();
+                $query = $this->repository->stateFilters($query, $request)->orderBy('id', 'desc');
+                if ($request->has('search') && $request->search['value']) {
+                    $search = $request->search['value'];
+                    $query->where(function ($q) use ($search) {
+                        $q->where('name', 'like', "%$search%");
+                    });
+                }
+
+                return DataTables::of($query)
+
+                    ->addColumn('name', function ($row) {
+                        return $row?->name;
+                    })
+                    ->addColumn('created_at', function ($row) {
+                        return date_time_formate($row?->created_at);
+                    })
+                    ->addColumn('country_code', function ($row) {
+                        return $row?->country_code;
+                    })
+                    ->addColumn('countryName', function ($row) {
+                        return $row?->country?->name ?? 'N/A';
+                    })
+                    ->addColumn('created_by', function ($row) {
+                        return $row?->creator?->name ?? 'N/A';
+                    })
+                    ->addColumn('actions', function ($row) {
+                        $incr = encrypt($row?->id);
+
+                        $edit_url = route('course-state-edit', ['id' => $incr]);
+
+                        $dropdown = '<div class="dropdown relative inline-block bg-gray-100 hover:bg-gray-200 p-1 rounded-sm border">
+                            <button onClick="toggleDropdown(this)" class="inline-flex items-center text-sm font-medium text-gray-900" type="button">
+                                <i class="ri-more-2-fill"></i>
+                            </button>
+                            <div class="dropdown-menu absolute right-0 mt-2 z-10 hidden bg-white divide-y divide-gray-100 rounded-md border w-[240px]">
+                                <ul class="text-sm text-black">';
+
+                        // $dropdown .= '<li><a href="'.$view_url.'" class="block px-6 py-2 hover:bg-gray-100"><i class="ri-eye-line mr-2"></i>View</a></li>';
+                        $dropdown .= '<li><a href="'.$edit_url.'" class="block px-6 py-2 hover:bg-gray-100"><i class="ri-pencil-line mr-2"></i>Edit</a></li>';
+
+
+                        $dropdown .= '</ul></div></div>';
+
+                        return $dropdown;
+                    })
+                    ->rawColumns(['name', 'actions', 'countryName', 'country_code', 'created_at'])
+                    ->make(true);
+            }
+
+            return view('Course::Master.State.index');
+        } catch (\Exception $e) {
+            catch_log($e, 'Getting list of Course Location data');
+            if ($request->ajax()) {
+                return response()->json(
+                    [
+                        'status' => false,
+                        'error' => $e->getMessage(),
+                    ],
+                    500
+                );
+            }
+
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function stateCreate($id, $view = null)
+    {
+        try {
+            $data = $this->repository->stateCreate($id, $view);
+
+            return $data;
+        } catch (\Exception $e) {
+            catch_log($e, 'Viewing/creating/Editing Course Location');
+
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+        public function getCountries()
+    {
+        try {
+            $userModel = get_class(get_model_instance('CourseCountry', 'Course'));
+            return $userModel::all();
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    //     public function stateStore(Request $request)
+    // {
+
+    //     try {
+    //         $data = $this->repository->stateStore($id, $request);
+    //         if (! $data['status']) {
+    //             return back()->with('error', $data['message'])->withInput();
+    //         }
+
+    //         return redirect()->route('course-state-list')->with('success', $data['message']);
+    //     } catch (\Exception $e) {
+    //         catch_log($e, 'Creating state ');
+
+    //         return back()->with('error', $e->getMessage());
+    //     }
+    // }
+
+        public function stateStore(Request $request)
+    {
+        $cmp_and_user = Controller::loginandcompany();
+        $data = $request->all();
+        $data['created_by'] = $cmp_and_user[0];
+        $data['company_id'] = $cmp_and_user[1];
+
+
+        try {
+
+            if (isset($data['location_id'])) {
+                $id = decrypt($data['location_id']);
+            $result = $this->repository->stateStore($id, $data);
+            } else {
+
+                $result = $this->repository->stateStore(null , $data);
+            }
+            return $result;
+        } catch (\Exception $e) {
+            return [
+                'status' => false,
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+
+    // Course City Code
+
+    public function cityList(Request $request)
+    {
+        try {
+            if ($request->ajax()) {
+                $query = $this->repository->cityList();
+                $query = $this->repository->cityFilters($query, $request)->orderBy('id', 'desc');
+                if ($request->has('search') && $request->search['value']) {
+                    $search = $request->search['value'];
+                    $query->where(function ($q) use ($search) {
+                        $q->where('name', 'like', "%$search%");
+                    });
+                }
+
+                return DataTables::of($query)
+                    ->addColumn('name', function ($row) {
+                        return $row?->name;
+                    })
+                    ->addColumn('created_at', function ($row) {
+                        return date_time_formate($row?->created_at);
+                    })
+                    ->addColumn('country_code', function ($row) {
+                        return $row?->country_code;
+                    })
+                    ->addColumn('countryName', function ($row) {
+                        return $row?->country?->name ?? 'N/A';
+                    })
+                    ->addColumn('stateName', function ($row) {
+                        return $row?->state?->name ?? 'N/A';
+                    })
+                    ->addColumn('created_by', function ($row) {
+                        return $row?->creator?->name ?? 'N/A';
+                    })
+                    ->addColumn('actions', function ($row) {
+                        $incr = encrypt($row?->id);
+                        // $view_url = route('course-city-view', ['id' => $incr]);
+                        $edit_url = route('course-city-edit', ['id' => $incr]);
+
+                        $dropdown = '<div class="dropdown relative inline-block bg-gray-100 hover:bg-gray-200 p-1 rounded-sm border">
+                            <button onClick="toggleDropdown(this)" class="inline-flex items-center text-sm font-medium text-gray-900" type="button">
+                                <i class="ri-more-2-fill"></i>
+                            </button>
+                            <div class="dropdown-menu absolute right-0 mt-2 z-10 hidden bg-white divide-y divide-gray-100 rounded-md border w-[240px]">
+                                <ul class="text-sm text-black">';
+
+                        // $dropdown .= '<li><a href="'.$view_url.'" class="block px-6 py-2 hover:bg-gray-100"><i class="ri-eye-line mr-2"></i>View</a></li>';
+                        $dropdown .= '<li><a href="'.$edit_url.'" class="block px-6 py-2 hover:bg-gray-100"><i class="ri-pencil-line mr-2"></i>Edit</a></li>';
+                        // $dropdown .= '<li><button onclick="confirmDeleteHeader(\''.$incr.'\')" class="block w-full text-left px-6 py-2 hover:bg-gray-100 text-red-600">
+                        //             <i class="ri-delete-bin-line mr-2"></i>Delete</button></li>';
+
+                        $dropdown .= '</ul></div></div>';
+
+                        return $dropdown;
+                    })
+                    ->rawColumns(['name', 'actions', 'countryName', 'stateName', 'country_code', 'created_at'])
+                    ->make(true);
+            }
+
+            return view('Course::Master.City.index');
+        } catch (\Exception $e) {
+            catch_log($e, 'Getting list of Course Location data');
+            if ($request->ajax()) {
+                return response()->json(
+                    [
+                        'status' => false,
+                        'error' => $e->getMessage(),
+                    ],
+                    500
+                );
+            }
+
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function cityCreate($id, $view = null)
+    {
+        try {
+            $data = $this->repository->CityCreate($id, $view);
+
+            return $data;
+        } catch (\Exception $e) {
+            catch_log($e, 'Viewing/creating/Editing Course Location');
+
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function CityStore(Request $request)
+    {
+        $cmp_and_user = Controller::loginandcompany();
+        $data = $request->all();
+        $data['created_by'] = $cmp_and_user[0];
+        $data['company_id'] = $cmp_and_user[1];
+
+
+        try {
+
+            if (isset($data['location_id'])) {
+                $id = decrypt($data['location_id']);
+            $result = $this->repository->cityStore($id, $data);
+            } else {
+
+                $result = $this->repository->cityStore(null , $data);
+            }
+            return $result;
+        } catch (\Exception $e) {
+            return [
+                'status' => false,
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+
+    // Course City Code
+
+    public function CourseCategoryList(Request $request)
+    {
+        try {
+            if ($request->ajax()) {
+                $query = $this->repository->coursecategoryList();
+
+                $query = $this->repository->coursecategoryFilters($query, $request)->orderBy('id', 'desc');
+                if ($request->has('search') && $request->search['value']) {
+                    $search = $request->search['value'];
+                    $query->where(function ($q) use ($search) {
+                        $q->where('category_name', 'like', "%$search%");
+                        $q->orWhere('short_description', 'like', "%$search%");
+                    });
+                }
+
+                return DataTables::of($query)
+
+                    ->addColumn('category_name', function ($row) {
+                        return $row?->category_name;
+                    })
+                    ->addColumn('created_at', function ($row) {
+                        return date_time_formate($row?->created_at);
+                    })
+
+                    ->addColumn('sub_category', function ($row) {
+                        return $row?->parent?->category_name;
+                    })
+                    ->addColumn('short_description', function ($row) {
+                        return Str::limit($row?->short_description ?? 'N/A', 30);
+                    })
+                    ->addColumn('created_by', function ($row) {
+                        return $row?->creator?->name ?? 'N/A';
+                    })
+                    ->addColumn('actions', function ($row) {
+                        $incr = encrypt($row?->id);
+                        $addchild = route('course-category-addchild', ['id' => $incr]);
+                        $editchild = route('course-category-editchild', ['id' => $incr]);
+                        $edit_url = route('course-category-edit', ['id' => $incr]);
+
+                        $dropdown = '<div class="dropdown relative inline-block bg-gray-100 hover:bg-gray-200 p-1 rounded-sm border">
+                            <button onClick="toggleDropdown(this)" class="inline-flex items-center text-sm font-medium text-gray-900" type="button">
+                                <i class="ri-more-2-fill"></i>
+                            </button>
+                            <div class="dropdown-menu absolute right-0 mt-2 z-10 hidden bg-white divide-y divide-gray-100 rounded-md border w-[240px]">
+                                <ul class="text-sm text-black">';
+                        if(!$row?->parent?->category_name == null)
+                        {
+                        $dropdown .= '<li><a href="'.$addchild.'" class="block px-6 py-2 hover:bg-gray-100"><i class="ri-eye-line mr-2"></i>Add Sub Category</a></li>';
+                        $dropdown .= '<li><a href="'.$editchild.'" class="block px-6 py-2 hover:bg-gray-100"><i class="ri-eye-line mr-2"></i>Edit Sub Category</a></li>';
+                        }
+                        $dropdown .= '<li><a href="'.$edit_url.'" class="block px-6 py-2 hover:bg-gray-100"><i class="ri-pencil-line mr-2"></i>Edit</a></li>';
+                        $dropdown .= '</ul></div></div>';
+
+                        return $dropdown;
+                    })
+                    ->rawColumns(['category_name', 'actions', 'sub_category', 'short_description', 'created_at'])
+                    ->make(true);
+            }
+
+            return view('Course::Master.CourseCategory.index');
+        } catch (\Exception $e) {
+            catch_log($e, 'Getting list of Course Category data');
+            if ($request->ajax()) {
+                return response()->json(
+                    [
+                        'status' => false,
+                        'error' => $e->getMessage(),
+                    ],
+                    500
+                );
+            }
+
+            return back()->with('error', $e->getMessage());
+        }
+    }
+    public function courseCategoryChildCreate($request)
+    {
+         try {
+
+            $data = $this->repository->CourseChildCategoryCreate($request);
+
+            return $data;
+        } catch (\Exception $e) {
+            catch_log($e, 'Viewing/creating/Editing Course Category');
+
+            return back()->with('error', $e->getMessage());
+        }
+    }
+    public function courseChildcategoryEdit($request)
+    {
+         try {
+            $data = null;
+             $category = Controller::model('CourseCategory', 'Course')::whereNull('main_category_id')->get();
+            if (!empty($request->id)) {
+                $id = decrypt($request->id);
+                $data = Controller::model('CourseCategory', 'Course')::find($id);
+            }
+            return view('Course::Master.CourseCategory.editchildCategory', compact('data','category'));
+
+        } catch (\Exception $e) {
+            catch_log($e, 'Course Course');
+
+            return back()->with('error', $e->getMessage());
+        }
+    }
+    
+    public function CourseCategoryCreate($id, $view = null)
+    {
+
+        try {
+
+            $data = $this->repository->CourseCategoryCreate($id, $view);
+
+            return $data;
+        } catch (\Exception $e) {
+            catch_log($e, 'Viewing/creating/Editing Course Category');
+
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function cousecategoryStore(Request $request)
+    {
+        try {
+            $data = $this->repository->cousecategoryStore($request);
+            if (! $data['status']) {
+                return back()->with('error', $data['message'])->withInput();
+            }
+
+            return redirect()->route('course-category-list')->with('success', $data['message']);
+        } catch (\Exception $e) {
+            catch_log($e, 'Creating Course Course');
+
+            return back()->with('error', $e->getMessage());
+        }
+    }
+    public function couseChildcategoryStore(Request $request)
+    {
+        try {
+            $data = $this->repository->couseChildcategoryStore($request);
+            if (! $data['status']) {
+                return back()->with('error', $data['message'])->withInput();
+            }
+
+            return redirect()->route('course-category-list')->with('success', $data['message']);
+        } catch (\Exception $e) {
+            catch_log($e, 'Creating Course Course');
+
+            return back()->with('error', $e->getMessage());
+        }
+    }
+    
+    
+
+    public function get_filtered_stateName(Request $request)
+    {
+        try {
+            $data = $this->repository->get_filtered_StateName($request);
+
+            return response()->json(['status' => true, 'data' => $data]);
+        } catch (\Exception $e) {
+            catch_log($e, 'Getting filtered State Name');
+
+            return response()->json(['status' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+}

@@ -1,21 +1,34 @@
-node_modules
+# Dependencies
+vendor/
+node_modules/
 
+# Environment
+.env
+
+# Laravel generated
+storage/logs/
+storage/framework/sessions/
+storage/framework/cache/
+storage/framework/views/
+bootstrap/cache/
+
+# Build output
+public/build/
+public/hot
+
+# Uploaded files (runtime data, not source)
+public/invoices/
+public/teamApplication/
+
+# Misc
+.DS_Store
+*.log
+
+database/*.sql
+database/*.sql.gz
+
+.git-backup/
+
+# Runtime uploaded files
 /public/storage/
 /storage/app/public/documents/
-
-/public/storage/
-/storage/app/public/documents/
-
-/public/storage/
-/storage/app/public/documents/
-/vendor/
-/node_modules/
-/.env
-
-*.sql.gz
-/storage/framework/sessions/*
-/storage/framework/views/*
-/storage/logs/*
-!storage/framework/sessions/.gitignore
-!storage/framework/views/.gitignore
-!storage/logs/.gitignore

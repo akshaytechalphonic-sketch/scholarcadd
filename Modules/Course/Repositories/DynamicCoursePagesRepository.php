@@ -1,0 +1,944 @@
+<?php
+
+namespace Modules\Course\Repositories;
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Modules\Course\Models\CourseImages;
+
+class DynamicCoursePagesRepository extends Controller
+{
+    public function DynamicCoursePagesList()
+    {
+        $companyId = Controller::loginandcompany();
+
+        return Controller::model('DynamicCoursePages', 'Course')::with('Coursedate', 'CourseCountryName')->where('company_id', $companyId[1])->orderby('id', 'DESC');
+    }
+
+    public static function DynamicCourseFilters($query, $request)
+    {
+        return $query
+            ->when($request && $request->custom_filter && is_array(request('custom_filter')) && $request->custom_filter[0] != 'created_at' && $request->custom_filter[0] != 'created_by' && $request->custom_filter[0] != 'category', function ($query) use ($request) {
+                $query->where($request->custom_filter[0], $request->custom_filter[1]);
+            })
+            ->when($request && $request->custom_filter && is_array(request('custom_filter')) && $request->custom_filter[0] == 'created_by', function ($query) use ($request) {
+                $item = $request->custom_filter[1];
+                $query->whereHas('creator', function ($subQuery) use ($item) {
+                    $subQuery->where('name', $item);
+                });
+            })
+            ->when(
+                $request && $request->custom_filter && is_array($request->custom_filter) && $request->custom_filter[0] === 'created_at',
+                function ($query) use ($request) {
+                    $start_date = $request->custom_filter[1];
+                    $end_date = $request->custom_filter[2];
+                    $query->whereBetween(DB::raw('DATE(created_at)'), [$start_date, $end_date]);
+                }
+            );
+    }
+
+    public function DynamicCoursePagesCreate($id = null, $view = null)
+    {
+        try {
+            $data = null;
+            $multidat = collect();
+
+            // ---------------------------------------------------------
+            // 🔹 1. If ID exists → fetch dynamic page + related pages
+            // ---------------------------------------------------------
+            if ($id) {
+                $id = decrypt($id);
+
+                $data = Controller::model('DynamicCoursePages', 'Course')
+                            ::with('Coursedate', 'CourseCountryName', 'StateName')
+                            ->find($id);
+
+                if (! $data) {
+                    return back()->with('error', 'Course not found with the given ID.');
+                }
+
+                // Get all dynamic pages under same course
+                $multidat = Controller::model('DynamicCoursePages', 'Course')
+                            ::where('course_id', $data->course_id)
+                            ->get();
+
+                // If only view is required
+                if ($view === 'view') {
+                    $course = Controller::model('Course', 'Course')::get();
+                    return view('Course::Dynamic_pages.view', compact('data', 'multidat', 'course'));
+                }
+            }
+
+            // When page is new but course exists -> load related pages
+            if (!$multidat->count() && $data?->course_id) {
+                $multidat = Controller::model('DynamicCoursePages', 'Course')
+                            ::where('course_id', $data->course_id)
+                            ->get();
+            }
+
+            // ---------------------------------------------------------
+            // 🔹 2. Load basic common data
+            // ---------------------------------------------------------
+            $course               = Controller::model('Course', 'Course')::get();
+            $course_Country       = Controller::model('CourseCountry', 'Course')::get();
+            $headline = $this->getCoursewithutIdData('DynamicCourseHeadline', $data);
+        // $coursemainHeadline   = $this->getCoursewithutIdData('DynamicCourseHeadline', $data);
+
+            // ---------------------------------------------------------
+            // 🔹 3. Salary (3 JSON Fields)
+            // ---------------------------------------------------------
+            $courseSalary = $this->getCourseData('CourseSalary', $data);
+
+            $courseSalaryone = [
+                'position_one_salary'   => json_decode($courseSalary?->position_one_salary, true),
+                'position_two_salary'   => json_decode($courseSalary?->position_two_salary, true),
+                'position_three_salary' => json_decode($courseSalary?->position_three_salary, true),
+            ];
+
+            // ---------------------------------------------------------
+            // 🔹 4. Course Highlights
+            // ---------------------------------------------------------
+            $bulletPoints = $this->getCourseData('CourseHighlights', $data);
+            $bulletArray  = json_decode($bulletPoints?->course_highlights_in_pointers, true);
+
+            // ---------------------------------------------------------
+            // 🔹 5. Load various sections
+            // ---------------------------------------------------------
+            $allHeadline              = $this->getCourseData('DynamicCourseSectionheading', $data);
+            $aboutGeography           = $this->getAboutGeographyData('AboutGeography', $data);
+        //dd($aboutGeography);
+            $courseHeadingDescription = $this->getCourseDataReletion('CourseHeadingDescription', $data);
+            $coursecurriculumFaq      = $this->getcourseCategoryData('CourseCurriculumFaq', $data);
+            $keyfeatures              = $this->getCourseData('DynamicCourseKeyfeatures', $data);
+            $courseHeading            = $this->getCourseData('CourseHeading', $data);
+            $whatyoulearn             = $this->getCourseData('Course_Whatyoulearn', $data);
+            $courseOverview           = $this->getCourseData('CourseOverviews', $data);
+            $courseBenefits           = $this->getCourseData('CourseBenefits', $data);
+            $hiring_companies         = $this->getCoursewithwebsiteData('HiringCompanies', $data);
+            $newExamstructure         = $this->getCourseData('NewExamStructure', $data);
+            $certificatetext         = $this->getCourseData('Certificatetext', $data);
+
+
+
+            // ---------------------------------------------------------
+            // 🔹 6. Course Certification Path (Multiple JSON Fields)
+            // ---------------------------------------------------------
+            $courseCertificationPath = $this->getCourseData('CourseCertificationPath', $data);
+            $keys = [
+                'pointer_one', 'pointer_two', 'pointer_three',
+                'pointer_four', 'pointer_five', 'pointer_six', 'pointer_seven'
+            ];
+
+            $courseCertificationData = [];
+            foreach ($keys as $key) {
+                $courseCertificationData[$key] = json_decode($courseCertificationPath?->$key, true);
+            }
+
+            // ---------------------------------------------------------
+            // 🔹 7. Certification Eligibility (JSON)
+            // ---------------------------------------------------------
+            $certificationEligibility = $this->getCourseData('CertificationEligibility', $data);
+            $cerEligibility = json_decode($certificationEligibility?->eligibility_pointers, true);
+
+
+            $course_image = $this->getCourseData('CourseImages', $data);
+
+
+            // ---------------------------------------------------------
+            // 🔹 8. Why ScholarAcad section (record_one to record_six)
+            // ---------------------------------------------------------
+            $courseWhyScholarAcad = $this->getCourseData('CourseWhyScholarAcad', $data);
+
+            $records = [];
+            foreach ([
+                'record_one', 'record_two', 'record_three',
+                'record_four', 'record_five', 'record_six','record_seven','record_eight','record_nine'
+            ] as $key) {
+                $records[$key] = json_decode($courseWhyScholarAcad?->$key, true);
+            }
+
+
+            // ---------------------------------------------------------
+            // 🔹 10.Learning Objectives section (record_one to record_six)
+            // ---------------------------------------------------------
+            $learningObjectives = $this->getCourseData('CourseLearningObjectives', $data);
+
+            $recordsObjectives = [];
+            foreach ([
+                'record_one', 'record_two', 'record_three',
+                'record_four', 'record_five', 'record_six'
+            ] as $key) {
+                $recordsObjectives[$key] = json_decode($learningObjectives?->$key, true);
+            }
+
+
+
+            // ---------------------------------------------------------
+            // 🔹 9. Return Add/Edit View
+            // ---------------------------------------------------------
+            return view(
+                'Course::Dynamic_pages.add',
+                compact(
+                    'course', 'courseCertificationData', 'headline',
+                    'coursecurriculumFaq', 'recordsObjectives', 'courseSalaryone', 'courseSalary',
+                    'aboutGeography', 'hiring_companies', 'courseBenefits',
+                    'cerEligibility', 'courseHeadingDescription', 'newExamstructure',
+                    'allHeadline', 'bulletArray', 'whatyoulearn', 'records',
+                    'bulletPoints', 'data','certificatetext','multidat', 'courseWhyScholarAcad',
+                    'keyfeatures', 'courseHeading', 'courseOverview', 'course_Country' , 'course_image'
+                )
+            );
+
+        } catch (\Exception $e) {
+            Controller::db()::rollback();
+            catch_log($e, 'Course YouTube');
+
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function DynamicCoursePagesStore(Request $request)
+    {
+
+        // dd($request->all());
+
+         // Controller::db()::beginTransaction();
+        $cmp_and_user = Controller::loginandcompany();
+        try {
+
+            // =========================================================
+            // 🔹 1. INSERT or UPDATE MAIN COURSE PAGE
+            // =========================================================
+            if ($request->dynamiccourse_pages_id) {
+
+                $id = decrypt($request->dynamiccourse_pages_id);
+
+                $data = Controller::model('DynamicCoursePages', 'Course')
+                    ::with(['Coursedate', 'CourseCountryName', 'StateName'])
+                    ->find($id);
+
+                if (! $data) {
+                    return back()->with('error', 'Course not found.');
+                }
+
+                $data->googleRating = $request->googleRating;
+                $data->facebook = $request->facebook;
+                $data->installgram = $request->installgram;
+                $data->enrolled = $request->enrolled;
+                $data->save();
+
+
+            } else {
+
+                $model = Controller::model('DynamicCoursePages', 'Course');
+                $data = new $model;
+                $data->course_id = $request->category_id;
+                $data->country_id = $request->country_id;
+                $data->state_id = $request->state_id;
+                $data->is_ready ="yes";
+                $data->googleRating = $request->googleRating;
+                $data->facebook = $request->facebook;
+                $data->installgram = $request->installgram;
+                $data->enrolled = $request->enrolled;
+                $data->created_by = $cmp_and_user[0];
+                $data->company_id = $cmp_and_user[1];
+                $data->save();
+            // dd($data);
+
+            }
+
+
+
+        // dd($data);
+            // Helper: Find by course_id + country + state safely
+            $findCourseRecord = function($model, $data) {
+                return Controller::model($model, 'Course')::firstOrNew([
+                    'course_id'  => $data?->course_id ?? 0,
+                    'country_id' => $data?->country_id ?? 0,
+                    'state_id'   => $data?->state_id ?? null,
+                ]);
+            };
+
+            // Helper: Find by course_id + country + state safely
+            $findcountryRecord = function($model, $data) {
+                return Controller::model($model, 'Course')::firstOrNew([
+                    'country_id' => $data?->country_id ?? 0,
+                    'state_id'   => $data?->state_id ?? null,
+                ]);
+            };
+            //   dd($request?->feature_image);
+
+            $image = $findCourseRecord('CourseImages', $data);
+
+            if ($request->hasFile('feature_image')) {
+
+                $file = $request->file('feature_image');
+
+                $filename = 'Image_' . time() . '.' . $file->getClientOriginalExtension();
+
+                $destinationPath = public_path('assets/banner-images');
+
+                $file->move($destinationPath, $filename);
+
+                $image->banner_image_path = 'assets/banner-images/' . $filename;
+                $image->save();
+            }
+
+
+            // =========================================================
+            // 🔸 2. SAVE SEO HEADLINE
+            // =========================================================
+            $headline = $findCourseRecord('DynamicCourseHeadline', $data);
+            //dd($headline);
+            $headline->page_title         = $request->main_heading;
+            $headline->meta_title         = $request->meta_title;
+            // $headline->meta_description   = $request->meta_description;
+            $headline->meta_keywords      = $request->meta_keywords;
+            $headline->hone_tag           = $request->hone_tag;
+            $headline->imageAltText       = $request->imageAltText;
+            $headline->metaDescription    = $request->metaDescription;
+            $headline->imageAltDescription = $request->imageAltDescription;
+            $headline->save();
+
+
+            // =========================================================
+            // 🔸 3. COURSE HIGHLIGHTS
+            // =========================================================
+            $highlights = $findCourseRecord('CourseHighlights', $data);
+
+            $highlights->course_description             = $request->tagline;
+            $highlights->course_highlights_in_pointers  = json_encode($request->bulletArray ,  JSON_UNESCAPED_UNICODE);
+            $highlights->save();
+            //dd($highlights);
+
+            // =========================================================
+            // 🔸 4. SECTION HEADINGS
+            // =========================================================
+
+            $certificationEligibility = $findCourseRecord('CertificationEligibility', $data);
+            // Save back as JSON
+            $certificationEligibility->eligibility_pointers = json_encode($request->cerEligibility ,  JSON_UNESCAPED_UNICODE);
+            $certificationEligibility->save();
+
+            $section = $findCourseRecord('DynamicCourseSectionheading', $data);
+
+            $section->program_overview     = $request->course_highlights_heading;
+            $section->training_highlights  = $request->training_highlights;
+            $section->new_learning_objectives = $request->new_learning_objectives;
+            $section->old_learning_objectives = $request->old_learning_objectives;
+            $section->advantage            = $request->scholaracad_heading;
+            $section->curriculum           = $request->allHeadline_curriculum;
+            $section->exam_structure       = $request->allHeadline_exam_structure;
+            $section->eligibility          = $request->heading_eligibility;
+            $section->trainers             = $request->trainers_heading;
+            $section->certifications       = $request->allHeadline_certifications;
+            $section->testimonials         = $request->allHeadline_testimonials;
+            $section->course_benefits     = $request->allHeadline_course_benefits;
+            $section->about_geography     = $request->aboutgeography;
+            $section->path    = $request->roadmap_path;
+            $section->hiring_company    = $request->allHeadline_hiring_company;
+            $section->alumni    = $request->allHeadline_alumni;
+            $section->segment    = $request->allHeadline_segment;
+            $section->recommended_course    = $request->recommended_course;
+
+            $section->training_options    = $request->training_options;
+            $section->roc_option1    = $request->roc_option1;
+            $section->roc_option2    = $request->roc_option2;
+            $section->roc_option3    = $request->roc_option3;
+            $section->roc_option4    = $request->roc_option4;
+            $section->schedule    = $request->schedule;
+
+
+            $section->save();
+
+            // =========================================================
+            // 🔸 5. HEADING Certificatetext
+            // =========================================================
+
+            $certificatetext = $findCourseRecord('Certificatetext', $data);
+            $certificatetext->description = $request->certificatetext_description;
+            $certificatetext->save();
+            // =========================================================
+            // 🔸 5. HEADING Course Salary
+            // =========================================================
+            $courseSalary = $findCourseRecord('CourseSalary', $data);
+
+                // POSITION 1
+                $courseSalary->position_one_name = $request->position_one_name;
+                $courseSalary->position_one_salary = json_encode([
+                    'min' => trim($request->position_one_min_salary),
+                    'avg' => trim($request->position_one_avg_salary),
+                    'max' => trim($request->position_one_max_salary),
+                     JSON_UNESCAPED_UNICODE
+                ]);
+
+                // POSITION 2
+                $courseSalary->position_two_name = $request->position_two_name;
+                $courseSalary->position_two_salary = json_encode([
+                    'min' => trim($request->position_two_min_salary),
+                    'avg' => trim($request->position_two_avg_salary),
+                    'max' => trim($request->position_two_max_salary),
+                ] ,   JSON_UNESCAPED_UNICODE);
+
+                // POSITION 3
+                $courseSalary->position_three_name = $request->position_three_name; // FIXED
+                $courseSalary->position_three_salary = json_encode([
+                    'min' => trim($request->position_three_min_salary),
+                    'avg' => trim($request->position_three_avg_salary),
+                    'max' => trim($request->position_three_max_salary)
+                ] ,  JSON_UNESCAPED_UNICODE);
+
+                $courseSalary->save();
+
+            // =========================================================
+            // 🔸 5. HEADING DESCRIPTIONS
+            // =========================================================
+
+
+            $headingDesc = Controller::model('CourseHeadingDescription', 'Course')
+                ::firstOrNew(['course_id' => $data?->course_id ?? 0]);
+
+            $headingDesc->curriculum   = $request->certificate_description;
+            $headingDesc->eligibility  = $request->eligibility_description;
+            $headingDesc->trainers     = $request->trainers_description;
+            $headingDesc->testimonials     = $request->testimonials_description;
+
+            $headingDesc->save();
+
+                        // 1. Fetch all existing FAQs for this course
+                $existingFaqs = Controller::model('CourseCurriculumFaq', 'Course')
+                    ::where('course_id', $data->course_id)
+                    ->get();
+
+                // Convert to array with the same order as UI
+                $existingFaqs = $existingFaqs->values();
+
+                // 2. Loop through request FAQs
+
+                $faqs = $request->coursecurriculumFaqs ?? [];
+                    foreach ($faqs as $index => $title) {
+
+                        $description = $request->coursecurriculumFaqsdescription[$index] ?? null;
+
+                        if (isset($existingFaqs[$index])) {
+                            // 3. UPDATE existing row
+                            $faq = $existingFaqs[$index];
+                        } else {
+                            // 4. CREATE new row
+                            $faq = Controller::model('CourseCurriculumFaq', 'Course')::create([
+                                'course_id' => $data->course_id,
+                                'title'           => $title,
+                                'description'     => $description,
+                            ]);
+
+                            continue; // skip save() because create() already saves
+                        }
+
+                        // Update existing FAQ
+                        $faq->title = $title;
+                        $faq->description = $description;
+                        $faq->save();
+                    }
+                
+
+                // 5. DELETE extra FAQs if user removed some
+             $faqs = $request->input('coursecurriculumFaqs', []);
+
+            if (count($existingFaqs) > count($faqs)) {
+
+                for ($i = count($faqs); $i < count($existingFaqs); $i++) {
+
+                    if (isset($existingFaqs[$i])) {
+                        $existingFaqs[$i]->delete();
+                    }
+
+                }
+
+            }
+
+
+            // =========================================================
+            // 🔸 6. COURSE OVERVIEW
+            // =========================================================
+            $overview = $findCourseRecord('CourseOverviews', $data);
+
+            $overview->course_overview = $request->course_highlights_overview;
+            $overview->save();
+
+            $courseCertificationPath = $findCourseRecord('CourseCertificationPath', $data);
+            $courseCertificationPath->pointer_one = json_encode([
+                'heading' => $request->schedules_point_one_heading,
+                'text' => $request->schedules_point_one_description
+            ] ,  JSON_UNESCAPED_UNICODE);
+
+            $courseCertificationPath->pointer_two = json_encode([
+                'heading' => $request->schedules_point_two_heading,
+                'text' => $request->schedules_point_two_description
+            ] ,  JSON_UNESCAPED_UNICODE);
+
+            $courseCertificationPath->pointer_three = json_encode([
+                'heading' => $request->schedules_point_three_heading,
+                'text' => $request->schedules_point_three_description
+            ] ,  JSON_UNESCAPED_UNICODE);
+
+            $courseCertificationPath->pointer_four = json_encode([
+                'heading' => $request->schedules_point_four_heading,
+                'text' => $request->schedules_point_four_description
+            ] ,  JSON_UNESCAPED_UNICODE);
+
+            $courseCertificationPath->pointer_five = json_encode([
+                'heading' => $request->schedules_point_five_heading,
+                'text' => $request->schedules_point_five_description
+            ] ,  JSON_UNESCAPED_UNICODE);
+
+            $courseCertificationPath->pointer_six = json_encode([
+                'heading' => $request->schedules_point_six_heading,
+                'text' => $request->schedules_point_six_description
+            ],  JSON_UNESCAPED_UNICODE);
+
+            $courseCertificationPath->pointer_seven = json_encode([
+                'heading' => $request->schedules_seven_heading,
+                'text' => $request->schedules_point_seven_description
+            ],  JSON_UNESCAPED_UNICODE);
+            $courseCertificationPath->read_more = null;
+            // ?? null
+            $courseCertificationPath->save();
+            // =========================================================
+            // 🔸 7. KEY FEATURES
+            // =========================================================
+            $keyfeatures = $findCourseRecord('DynamicCourseKeyfeatures', $data);
+
+            $keyfeatures->record_one   = $request->record_one;
+            $keyfeatures->record_two   = $request->point_two;
+            $keyfeatures->record_three = $request->point_three;
+            $keyfeatures->record_four  = $request->point_four;
+            $keyfeatures->record_five  = $request->point_five;
+            $keyfeatures->record_six   = $request->keyfeatures_point_six;
+            $keyfeatures->read_more   = $request->keyfeatures_readmore;
+            $keyfeatures->save();
+
+
+            // =========================================================
+            // 🔸 8. WHAT YOU LEARN
+            // =========================================================
+            $whatYouLearn = $findCourseRecord('Course_Whatyoulearn', $data);
+            $whatYouLearn->pointers = $request->pointers;
+            $whatYouLearn->description = $request->whatyoulearn_description;
+            $whatYouLearn->save();
+
+            $courseBenefits  =  $findCourseRecord('CourseBenefits', $data);
+            $courseBenefits->why_course_important_readmore = $request->courseBenefits_description;
+            $courseBenefits->save();
+
+            $aboutGeography  =  $findcountryRecord('AboutGeography', $data);
+            $aboutGeography->description = $request->aboutGeography_description;
+            $aboutGeography->save();
+
+            $learningObjectives = $findCourseRecord('CourseLearningObjectives', $data);
+            $learningObjectives->record_one = json_encode([
+                'heading' => $request->recordsObjectives_point_one_heading,
+                'description' => $request->recordsObjectives_point_one_description
+            ] ,  JSON_UNESCAPED_UNICODE);
+
+            $learningObjectives->record_two = json_encode([
+                'heading' => $request->recordsObjectives_point_two_heading,
+                'description' => $request->recordsObjectives_point_two_description
+            ],  JSON_UNESCAPED_UNICODE);
+
+            $learningObjectives->record_three = json_encode([
+                'heading' => $request->recordsObjectives_point_three_heading,
+                'description' => $request->recordsObjectives_point_three_description
+            ],  JSON_UNESCAPED_UNICODE);
+
+            $learningObjectives->record_four = json_encode([
+                'heading' => $request->recordsObjectives_point_four_heading,
+                'description' => $request->recordsObjectives_point_four_description
+            ],  JSON_UNESCAPED_UNICODE);
+
+            $learningObjectives->record_five = json_encode([
+                'heading' => $request->recordsObjectives_point_five_heading,
+                'description' => $request->recordsObjectives_point_five_description
+            ],  JSON_UNESCAPED_UNICODE);
+
+            $learningObjectives->record_six = json_encode([
+                'heading' => $request->recordsObjectives_point_six_heading,
+                'description' => $request->recordsObjectives_point_six_description
+            ],  JSON_UNESCAPED_UNICODE);
+            $learningObjectives->save();
+
+
+            // =========================================================
+            // 🔸 9. WHY SCHOLARACAD (JSON)
+            // =========================================================
+            $why = $findCourseRecord('CourseWhyScholarAcad', $data);
+
+            $why->record_one = json_encode([
+                'heading' => $request->point_one_heading,
+                'description' => $request->point_one_description
+            ] ,  JSON_UNESCAPED_UNICODE);
+
+            $why->record_two = json_encode([
+                'heading' => $request->point_two_heading,
+                'description' => $request->point_two_description
+            ],  JSON_UNESCAPED_UNICODE);
+
+            $why->record_three = json_encode([
+                'heading' => $request->point_three_heading,
+                'description' => $request->point_three_description
+            ],  JSON_UNESCAPED_UNICODE);
+
+            $why->record_four = json_encode([
+                'heading' => $request->point_four_heading,
+                'description' => $request->point_four_description
+            ],  JSON_UNESCAPED_UNICODE);
+
+            $why->record_five = json_encode([
+                'heading' => $request->point_five_heading,
+                'description' => $request->point_five_description
+            ],  JSON_UNESCAPED_UNICODE);
+
+            $why->record_six = json_encode([
+                'heading' => $request->point_six_heading,
+                'description' => $request->point_six_description
+            ],  JSON_UNESCAPED_UNICODE);
+
+            $why->record_six = json_encode([
+                'heading' => $request->point_six_heading,
+                'description' => $request->point_six_description
+            ],  JSON_UNESCAPED_UNICODE);
+            $why->record_seven = json_encode([
+                'heading' => $request->point_seven_heading,
+                'description' => $request->point_seven_description
+            ],  JSON_UNESCAPED_UNICODE);
+            $why->record_eight = json_encode([
+                'heading' => $request->point_eight_heading,
+                'description' => $request->point_eight_description
+            ],  JSON_UNESCAPED_UNICODE);
+
+            $why->record_nine = json_encode([
+                'heading' => $request->point_nine_heading,
+                'description' => $request->point_nine_description
+            ],  JSON_UNESCAPED_UNICODE);
+
+            $why->save();
+
+
+            // =========================================================
+            // 🔸 10. EXAM STRUCTURE
+            // =========================================================
+            $exam = $findCourseRecord('NewExamStructure', $data);
+
+            $exam->exam_structure = $request->newExamstructure_exam_structur;
+            $exam->save();
+
+
+            // SUCCESS
+            // Controller::db()::commit();
+
+            return [
+                'status'  => true,
+                'message' => 'Course saved successfully.',
+                'data'    => $data,
+            ];
+
+        } catch (\Exception $e) {
+
+            //Controller::db()::rollback();
+            catch_log($e, 'DynamicCoursePages');
+
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    protected function getCourseDataReletion($model, $data)
+    {
+        return Controller::model($model, 'Course')::where('course_id', $data?->course_id)->first();
+    }
+
+    protected function getCourseData($model, $data)
+    {
+        return Controller::model($model, 'Course')::where('course_id', $data?->course_id)
+            ->where('country_id', $data?->country_id)
+            ->where('state_id', $data?->state_id)
+            ->first();
+    }
+
+    protected function getCoursewithutIdData($model, $data)
+    {
+        return Controller::model($model, 'Course')::where('course_id', $data?->course_id)
+            ->where('country_id', $data?->country_id)
+            ->where('state_id', $data?->state_id)
+            ->first();
+    }
+
+    protected function getCoursewithwebsiteData($model, $data)
+    {
+        return Controller::model($model, 'Website')::where('course_id', $data?->course_id)
+            ->where('country_id', $data?->country_id)
+            ->where('state_id', $data?->state_id)
+            ->first();
+    }
+
+    protected function getcourseCategoryData($model, $data)
+    {
+        return Controller::model($model, 'Course')::where('course_id', $data?->course_id)->get();
+    }
+
+    protected function getAboutGeographyData($model, $data)
+    {
+        return Controller::model($model, 'Course')::where('country_id', $data?->country_id)
+            ->where('state_id', $data?->state_id)
+            ->first();
+    }
+
+    public function CourseDynamicPageDestroy($id)
+    {
+        try {
+            $id = decrypt($id);
+            $model = Controller::model('DynamicCoursePages', 'Course');
+            $entry = $model::find($id);
+
+            if (!$entry) {
+                return [
+                    'status' => false,
+                    'message' => 'Dynamic Course Page not found.',
+                ];
+            }
+
+            $entry->delete();
+            return [
+                'status' => true,
+                'message' => 'Course Dynamic Page deleted successfully.',
+            ];
+        } catch (\Exception $e) {
+            catch_log($e, "Delete Course Dynamic Page");
+            return [
+                'status' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    public function CourseYoutubeStore($request)
+    {
+
+        $cmp_and_user = Controller::loginandcompany();
+
+        $model = Controller::model('CourseYouTube', 'Course');
+
+        try {
+            // ✅ UPDATE
+            if (! empty($request->course_youtubeId)) {
+                $id = decrypt($request->course_youtubeId);
+                $entry = $model::find($id);
+
+                if (! $entry) {
+                    Controller::db()::rollback();
+
+                    return [
+                        'status' => false,
+                        'message' => __('Course not found with the given ID.'),
+                    ];
+                }
+
+                // delete old YouTube records for this course
+                $model::where('course_id', $entry->course_id)->delete();
+
+                // insert new YouTube records
+                foreach ($request->video_link as $key => $videolink) {
+                    if ($videolink == null) {
+                        $model::where('course_id', $entry->course_id)->delete();
+                    } else {
+                        $newEntry = new $model;
+                        $newEntry->course_id = $request->course_id;
+                        $newEntry->video_url = $videolink;
+                        $newEntry->video_description = $request->video_description[$key] ?? null;
+                        $newEntry->created_by = $cmp_and_user[0];
+                        $newEntry->company_id = $cmp_and_user[1];
+                        $newEntry->save();
+                    }
+                }
+
+                return [
+                    'status' => true,
+                    'message' => 'Course YouTube saved Updated.',
+                    'data' => $newEntry,
+                ];
+            } else {
+                // ✅ CREATE (multiple videos)
+                foreach ($request->video_link as $key => $videolink) {
+                    $entry = new $model;
+                    $entry->course_id = $request->course_id;
+                    $entry->video_url = $videolink;
+                    $entry->video_description = $request->video_description[$key] ?? null;
+                    $entry->created_by = $cmp_and_user[0];
+                    $entry->company_id = $cmp_and_user[1];
+                    $entry->save();
+                }
+
+                $message = 'Created Course YouTube(s) for Course - '.$request->course_id;
+            }
+            addToLog('CourseYouTube', $request->course_id, $message);
+
+            return [
+                'status' => true,
+                'message' => 'Course YouTube saved successfully.',
+                'data' => $entry,
+            ];
+        } catch (\Exception $e) {
+            Controller::db()::rollback();
+            catch_log($e, 'Course YouTube');
+
+            return [
+                'status' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    //  Course Trainer methods create by Lal Singh
+
+    public function CourseTrainersList()
+    {
+        $companyId = Controller::loginandcompany();
+
+        return Controller::model('CourseTrainer', 'Course')::with('Coursedate', 'CourseCountryName')->where('company_id', $companyId[1])->orderby('id', 'DESC');
+    }
+
+    public static function CourseTrainersListFilters($query, $request)
+    {
+        return $query
+            ->when($request && $request->custom_filter && is_array(request('custom_filter')) && $request->custom_filter[0] != 'created_at' && $request->custom_filter[0] != 'created_by' && $request->custom_filter[0] != 'category', function ($query) use ($request) {
+                $query->where($request->custom_filter[0], $request->custom_filter[1]);
+            })
+            ->when($request && $request->custom_filter && is_array(request('custom_filter')) && $request->custom_filter[0] == 'created_by', function ($query) use ($request) {
+                $item = $request->custom_filter[1];
+                $query->whereHas('creator', function ($subQuery) use ($item) {
+                    $subQuery->where('name', $item);
+                });
+            })
+            ->when(
+                $request && $request->custom_filter && is_array($request->custom_filter) && $request->custom_filter[0] === 'created_at',
+                function ($query) use ($request) {
+                    $start_date = $request->custom_filter[1];
+                    $end_date = $request->custom_filter[2];
+                    $query->whereBetween(DB::raw('DATE(created_at)'), [$start_date, $end_date]);
+                }
+            );
+    }
+
+    public function coursetrainerCreate(Request $request)
+    {
+        try {
+            $data = null;
+
+            if ($request?->id) {
+                $id = decrypt($request?->id);
+                $course = Controller::model('Course', 'Course')::get();
+                $course_Country = Controller::model('CourseCountry', 'Course')::get();
+                $course_state = Controller::model('State', 'Course')::get();
+                $data = Controller::model('CourseTrainer', 'Course')::with('Coursedate', 'CourseCountryName', 'StateName')->find($id);
+                // dd($data);
+
+                return view('Course::coursetrainer.add', compact('data', 'course', 'course_Country', 'course_state'));
+            }
+            $course = Controller::model('Course', 'Course')::get();
+            $course_Country = Controller::model('CourseCountry', 'Course')::get();
+            $course_state = Controller::model('State', 'Course')::get();
+
+            // dd($records['record_one']['heading']
+            return view('Course::coursetrainer.add', compact('data', 'course', 'course_Country', 'course_state'));
+        } catch (\Exception $e) {
+            Controller::db()::rollback();
+            catch_log($e, 'Course YouTube');
+
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function coursetrainerStore(Request $request)
+    {
+        $cmp_and_user = Controller::loginandcompany();
+        try {
+            Controller::db()::beginTransaction();
+            $model = Controller::model('CourseTrainer', 'Course');
+            $id = null;
+            $isUpdate = false;
+
+            // 🔹 If course_id exists → Update
+            if (! empty($request->course_trainer_id)) {
+                $id = decrypt($request->course_trainer_id);
+                $entry = $model::find($id);
+                $entry->updated_by = $cmp_and_user[0];
+                $isUpdate = true;
+                $message = 'Updated Course Trainer - '.$entry->code;
+            }
+            // 🔹 Else → Create new record
+            else {
+                $entry = new $model;
+                $entry->created_by = $cmp_and_user[0];
+                $message = 'Created new Course Trainer - '.$request->trainer_name;
+            }
+
+            // 🔸 Assign values
+            $entry->course_id = $request->course_id;
+            $entry->country_id = $request->country_id;
+            $entry->state_id = $request->state_id;
+            $entry->trainer_name = $request->trainer_name;
+            $entry->trainer_experience = $request->trainer_experience;
+            $entry->course_offered = $request->course_offered;
+            $entry->trainer_description = $request->short_description;
+            $entry->company_id = $cmp_and_user[1];
+            $entry->updated_by = $cmp_and_user[0];
+            $entry->save();
+
+            // 🔸 Handle feature image upload (optional)
+            if ($request->hasFile('feature_image')) {
+
+                $image = Controller::helper('CommonHelper')::folder_name(
+                    $entry->id,
+                    'CourseTrainer',
+                    'Course',
+                    $request->file('feature_image'),
+                    15,
+                    'images',
+                    'Course'
+                );
+
+                if (empty($image)) {
+                    Controller::db()::rollback();
+
+                    return [
+                        'status' => false,
+                        'message' => __('common.folder-name-not-generating'),
+                    ];
+                }
+
+                $entry->image_path = $image[1];
+                $entry->save();
+            }
+
+            // 🔸 Add log entry
+            addToLog('CourseTrainer', $entry->id, $message);
+
+            Controller::db()::commit();
+
+            return [
+                'status' => true,
+                'message' => $isUpdate
+                    ? __('Course Trainer updated successfully.')
+                    : __('Course Trainer created successfully.'),
+                'data' => $entry,
+            ];
+
+        } catch (\Exception $e) {
+            Controller::db()::rollback();
+            catch_log($e, 'CourseTrainer');
+
+            return [
+                'status' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+}

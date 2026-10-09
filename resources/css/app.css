@@ -1,0 +1,785 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+    @import url("./Component_css/form.css");
+    @import url("./Component_css/sidebar.css");
+}
+
+:root {
+    --color-primary: #1f3f49;
+    --color-secondary: #d8f6ff;
+    --color-neutral: #f9fafb;
+    --color-orange: #ffa500;
+    --color-surface: #f1f5f9;
+}
+
+.dark {
+    --color-primary: #1f3f49;
+    --color-secondary: #d8f6ff;
+    --color-neutral: #edecf3;
+    --color-orange: #ffa500;
+    --color-surface: #f9fafb;
+}
+
+body {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+    font-family: "Nunito", sans-serif;
+}
+
+html {
+    font-size: var(--base-font-size, 15px);
+}
+
+/* rtl css --- */
+[dir="rtl"] .text-left {
+    text-align: right;
+}
+
+[dir="rtl"] .text-right {
+    text-align: left;
+}
+
+[dir="rtl"] .text-center {
+    text-align: center;
+}
+
+[dir="rtl"] .ml-4 {
+    margin-left: 0;
+    margin-right: 1rem;
+}
+
+[dir="rtl"] .mr-4 {
+    margin-right: 0;
+    margin-left: 1rem;
+}
+
+/* ---scrollbar css----- */
+::-webkit-scrollbar {
+    width: 3px;
+    height: 4px;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #d8f6ff;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #1f3f49;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #969494;
+}
+
+/* ----code for remove spinner from number input field---- */
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* ------header btn component------ */
+@layer components {
+    .btn-primary {
+        @apply bg-white pt-[6px] text-center px-7 dark:bg-gray-600 dark:text-white rounded-md h-[39px] relative text-black border border-gray-200 overflow-hidden;
+    }
+
+    .btn-primary-hover {
+        @apply bg-secondary h-[38px] w-1/3 grid place-items-center absolute left-0 top-0 z-10 duration-500;
+    }
+
+    .btn-primary-hover:hover {
+        width: 100%;
+    }
+
+    .btn-primary-text {
+        @apply translate-x-4;
+    }
+}
+
+/* -----master tab card css---- */
+@layer components {
+    .master-tab {
+        @apply border-[2px] rounded-sm border-dotted border-gray-400 py-3 px-3 text-sm cursor-pointer hover:bg-blue-50 hover:border-none dark:hover:bg-black transition;
+    }
+}
+
+/* ----------tab card classs---- */
+@layer components {
+    .card-container {
+        @apply w-full mx-auto my-auto p-5 cursor-pointer hover:border-l-2 border-primary rounded-md bg-[#f9fcff] hover:bg-blue-50 dark:bg-gray-500;
+    }
+
+    .card-header {
+        @apply flex items-center justify-between mb-4 dark:text-white;
+    }
+
+    .card-icon-container {
+        @apply bg-white h-10 w-10 p-2 rounded-sm flex items-center justify-center;
+    }
+
+    .card-title {
+        @apply text-lg font-semibold text-gray-800 dark:text-white;
+    }
+
+    .card-description {
+        @apply text-sm text-gray-500 font-semibold dark:text-white;
+    }
+
+    .card-button {
+        @apply flex gap-2 items-center text-primary font-semibold hover:text-blue-500 transition;
+    }
+}
+
+/* Sidebar collapsed styles */
+.collapsed {
+    width: 7rem;
+}
+
+.collapsed ul li span {
+    display: none;
+}
+
+.collapsed img {
+    display: none;
+}
+
+/* Show dropdown only in collapsed mode */
+.collapsed .collapsed-only {
+    display: none;
+}
+
+.collapsed .group:hover .collapsed-only {
+    display: block;
+    position: absolute;
+    left: 100%;
+    top: 0;
+}
+
+:not(.collapsed) .collapsed-only {
+    display: none !important;
+}
+
+span {
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+span.ring-2 {
+    box-shadow: 0 0 0 3px rgb(193, 193, 217);
+}
+
+.bg-gray-900\/50 {
+    background: none;
+}
+
+/*Inset CSS*/
+.inset-0 {
+    inset: auto;
+}
+
+.some-class .inset-0 {
+    inset: 0px;
+}
+
+div.inset-0 {
+    inset: auto;
+}
+
+/* @layer components {
+  .hover-scale {
+      @apply transform scale-100 hover:scale-105 transition-transform duration-300 ease-in-out;
+  }
+} */
+
+/* Master sidebar list css */
+@layer components {
+    .list-view {
+        @apply text-blue-500 py-2 text-sm hover:text-primary hover:font-semibold cursor-pointer transform scale-100 transition-transform duration-300 ease-in-out;
+    }
+}
+
+@layer components {
+    .status-badge-success {
+        @apply text-white bg-green-600 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-green-700;
+    }
+
+    .status-badge-active {
+        @apply text-white bg-green-600 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-green-700;
+    }
+
+    .status-badge-inactive {
+        @apply text-white bg-gray-500 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-gray-700;
+    }
+
+    .status-badge-pending {
+        @apply text-white bg-yellow-500 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-yellow-600;
+    }
+
+    .status-badge-failed {
+        @apply text-white bg-red-500 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-red-600;
+    }
+
+    .status-badge-completed {
+        @apply text-white bg-blue-500 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-blue-600;
+    }
+
+    .status-badge-draft {
+        @apply text-white bg-indigo-500 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-indigo-600;
+    }
+
+    .status-badge-total {
+        @apply text-white bg-purple-500 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-purple-600;
+    }
+}
+
+@layer components {
+    .topbarbtn {
+        @apply inline-flex gap-1 border-l-[1px] items-center px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 hover:text-primary whitespace-nowrap;
+    }
+}
+
+@layer components {
+    .sidebar-list {
+        @apply flex items-center py-2 my-2 px-4 rounded-sm hover:bg-secondary hover:text-black hover:ring-2 hover:ring-offset-2 transition-all focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-[#f1f5f9];
+    }
+}
+
+input[type="search"] {
+    @apply text-xs sm:text-sm px-2 py-2 rounded-sm border border-gray-300;
+}
+
+/* input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="number"],
+input[type="url"],
+input[type="tel"] {
+  @apply text-xs px-2 py-1 rounded-sm border border-gray-300 focus:outline-none focus:ring focus:ring-blue-300;
+} */
+/* bg-[#fafafa] */
+.form-input {
+    @apply text-sm px-2 py-2 rounded-[4px] border border-gray-200 w-full mt-1 bg-[#ffffff];
+    @apply focus:outline-none focus:ring-0 focus:border-gray-200;
+    @apply active:outline-none active:ring-0 active:border-gray-200;
+}
+
+input[readonly],
+textarea[readonly],
+select[readonly] {
+    background-color: white;
+}
+
+/* Global smooth transitions */
+/* * {
+  transition: all 0.2s ease-in-out;
+} */
+
+.loading {
+    animation: fadeIn 1s ease-out;
+}
+
+.color-option {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.3s ease;
+}
+
+.color-option.selected {
+    border: 2px solid #000;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Define a reusable button class */
+.btn {
+    @apply px-3 py-2 font-medium text-center text-white dark:text-white bg-primary rounded-sm text-xs;
+}
+
+.btn:disabled {
+    @apply opacity-50 cursor-not-allowed;
+}
+
+:disabled {
+    background-color: #f5f4f7;
+}
+
+.btn-primary-sm {
+    @apply bg-[#448ECA] rounded-md text-white py-1.5 px-3 text-sm font-medium shadow-sm hover:bg-[#175a96] focus:outline-none focus:ring-2 focus:ring-[#1D70B7] focus:ring-opacity-50 transition ease-in-out duration-150;
+}
+
+.btn-primary-md {
+    @apply bg-primary rounded-[4px] text-white py-2 px-3 text-sm hover:bg-blue-900;
+}
+
+.btn-success-sm {
+    @apply bg-green-700 rounded-[4px] text-white py-[7px] px-2 text-xs hover:bg-green-800;
+}
+
+.btn-success-md {
+    @apply bg-green-700 rounded-[4px] text-white py-2 px-3 text-sm hover:bg-green-800;
+}
+
+.close-btn {
+    @apply bg-neutral text-gray-500 py-1 hover:bg-gray-200 hover:text-black px-1 rounded-md;
+}
+
+.btn-delete-sm {
+    @apply bg-red-500 rounded-[4px] text-white py-[7px] px-2 text-xs hover:bg-red-700;
+}
+
+.topbar_btn {
+    @apply inline-flex gap-2 border-l-[1px] items-center px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 hover:text-primary focus:z-10 focus:ring-2;
+}
+
+.toggle {
+    @apply relative w-9 h-5 bg-gray-200 rounded-full dark:bg-gray-700;
+}
+
+.toggle::after {
+    content: "";
+    @apply absolute top-[2px] start-[2px] bg-white border-gray-300 border rounded-full h-4 w-4 transition-all dark:border-gray-600;
+}
+
+input:checked+.toggle {
+    @apply bg-primary dark:bg-blue-600;
+}
+
+input:checked+.toggle::after {
+    transform: translateX(100%);
+    @apply border-white rtl:-translate-x-full;
+}
+
+/* Responsive code for Current time on topbar only show after 1030 px screen */
+@media (max-width: 1030px) {
+    .custom-topbar-content {
+        display: none;
+    }
+}
+
+.dataTables_wrapper .dataTables_length {
+    margin-right: 10px;
+    margin-bottom: 5px;
+}
+
+.dataTables_wrapper .dataTables_length select {
+    padding-inline: 26px;
+}
+
+.custome-tables {
+    @apply border p-2 text-start whitespace-nowrap text-xs;
+}
+
+/* -----data Table css for scoll and fix top and bottom content---- */
+.table-scroll-wrapper {
+    position: relative;
+}
+
+#data-table-list {
+    width: 100%;
+    min-width: 1000px;
+}
+
+.table-scroll-wrapper .dataTables_wrapper .dataTables_paginate,
+.table-scroll-wrapper .dataTables_wrapper .dataTables_length,
+.table-scroll-wrapper .dataTables_wrapper .dataTables_info {
+    position: sticky;
+    bottom: 0;
+    background-color: white;
+    z-index: 2;
+}
+
+.table-scroll-wrapper .dataTables_wrapper .dataTables_length {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+}
+
+.dataTables_wrapper {
+    padding-bottom: 40px;
+}
+
+/* -----data Table css for remove fix table top and bottom and perfect work of dropdown---- */
+/* .dropdown-menu.bottom {
+  top: 100%;
+  bottom: auto;
+  margin-top: 0.7rem;
+}
+
+.dropdown-menu.top {
+  bottom: 100%;
+  top: auto;
+  margin-bottom: 0.5rem;
+} */
+
+@media (max-width: 767px) {
+    .dataTables_wrapper .dataTables_scroll {
+        overflow-x: auto !important;
+    }
+
+    .dataTables_scrollBody {
+        overflow-x: auto !important;
+    }
+
+    table.dataTable {
+        width: max-content !important;
+    }
+}
+
+@media (min-width: 768px) {
+    .dataTables_wrapper .dataTables_scroll {
+        overflow: visible !important;
+        height: auto !important;
+    }
+
+    .dataTables_scrollBody {
+        overflow: visible !important;
+        height: auto !important;
+        max-height: none !important;
+    }
+
+    table.dataTable {
+        width: 100% !important;
+    }
+}
+
+.table_wrapper {
+    width: 100%;
+    padding: 1rem;
+    overflow-x: auto;
+    /* overflow-y: auto;  */
+}
+
+@media (min-width: 1240px) {
+    .table_wrapper {
+        overflow-x: visible;
+        /* overflow-y: visible; */
+    }
+}
+
+.table_wrapper table {
+    min-width: 90vw;
+    border-collapse: collapse;
+    overflow-x: auto;
+}
+
+/* .table_wrapper th,
+.table_wrapper td {
+  white-space: nowrap;
+  text-align: left;
+} */
+
+.dropdown-menu {
+    max-width: max-content;
+}
+
+.valid {
+    color: green;
+}
+
+.invalid {
+    color: red;
+}
+
+/* Remove default eye icon in Microsoft Edge and Chrome */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none;
+}
+
+input[type="password"]::-webkit-credentials-auto-fill-button {
+    display: none !important;
+    visibility: hidden;
+    pointer-events: none;
+    position: absolute;
+    right: 0;
+}
+
+/* General fallback to prevent autofill overlays */
+input[type="password"] {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+table thead tr th:first-child {
+    @apply rounded-tl-md;
+}
+
+
+table thead tr th:last-child {
+    @apply rounded-tr-md;
+}
+
+.text-danger {
+    @apply text-red-500;
+}
+
+
+
+/* Toggle css */
+.toggle-switch {
+    appearance: none;
+    width: 2.25rem;
+    height: 1.2rem;
+    background-color: #d1d5db;
+    border-radius: 9999px;
+    position: relative;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+}
+
+.toggle-switch:checked {
+    background-color: #10b981;
+    /* Tailwind emerald-500 */
+}
+
+.toggle-switch::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 0.8rem;
+    height: 0.8rem;
+    background-color: #fff;
+    border-radius: 9999px;
+    transition: transform 0.3s ease;
+}
+
+.toggle-switch:checked::before {
+    transform: translateX(1rem);
+}
+
+@layer components {
+    .page-heading {
+        @apply text-xl font-semibold text-gray-800 mb-3;
+    }
+
+    .section-heading {
+        @apply text-[16px] font-semibold text-gray-900 tracking-tight mb-2;
+    }
+
+    .form-label {
+        @apply text-sm font-bold text-gray-600;
+    }
+
+    .text-body {
+        @apply text-base text-gray-700 leading-6;
+    }
+}
+
+/* Css for Sidebar Theme color */
+:root,
+[data-theme="base"] {
+    --sidebar-bg: #ffffff;
+    --sidebar-text: #44484f;
+    --sidebar-hover-bg: #f3f4f6;
+    --sidebar-active-bg: #f2f2f2;
+    --sidebar-icon-bg: #cbccce;
+    --sidebar-icon-color: #ffffff;
+    --sidebar-icon-hover-bg: #e5e7eb;
+}
+
+[data-theme="purple"] {
+    /* --sidebar-bg: #f4f0ff; */
+    --sidebar-bg: #ffffff;
+    --sidebar-text: #7e22ce;
+    --sidebar-hover-bg: #ede9fe;
+    --sidebar-active-bg: #e9d5ff;
+    --sidebar-icon-bg: #9333ea;
+    --sidebar-icon-color: #ffffff;
+    --sidebar-icon-hover-bg: #ede9fe;
+}
+
+[data-theme="blue"] {
+    /* --sidebar-bg: #eff6ff; */
+    --sidebar-bg: #ffffff;
+    --sidebar-text: #2563eb;
+    --sidebar-hover-bg: #dbeafe;
+    --sidebar-active-bg: #bfdbfe;
+    --sidebar-icon-bg: #3b82f6;
+    --sidebar-icon-color: #ffffff;
+    --sidebar-icon-hover-bg: #dbeafe;
+}
+
+[data-theme="green"] {
+    /* --sidebar-bg: #ecfdf5; */
+    --sidebar-bg: #ffffff;
+    --sidebar-text: #059669;
+    --sidebar-hover-bg: #d1fae5;
+    --sidebar-active-bg: #a7f3d0;
+    --sidebar-icon-bg: #10b981;
+    --sidebar-icon-color: #ffffff;
+    --sidebar-icon-hover-bg: #d1fae5;
+}
+
+[data-theme="red"] {
+    /* --sidebar-bg: #fee2e2; */
+    --sidebar-bg: #ffffff;
+    --sidebar-text: #b91c1c;
+    --sidebar-hover-bg: #fecaca;
+    --sidebar-active-bg: #fca5a5;
+    --sidebar-icon-bg: #ef4444;
+    --sidebar-icon-color: #ffffff;
+    --sidebar-icon-hover-bg: #fecaca;
+}
+
+[data-theme="orange"] {
+    /* --sidebar-bg: #fff7ed; */
+    --sidebar-bg: #ffffff;
+    --sidebar-text: #ea580c;
+    --sidebar-hover-bg: #ffedd5;
+    --sidebar-active-bg: #fdba74;
+    --sidebar-icon-bg: #f97316;
+    --sidebar-icon-color: #ffffff;
+    --sidebar-icon-hover-bg: #ffedd5;
+}
+
+[data-theme="teal"] {
+    /* --sidebar-bg: #f0fdfa; */
+    --sidebar-bg: #ffffff;
+    --sidebar-text: #0f766e;
+    --sidebar-hover-bg: #ccfbf1;
+    --sidebar-active-bg: #5eead4;
+    --sidebar-icon-bg: #14b8a6;
+    --sidebar-icon-color: #ffffff;
+    --sidebar-icon-hover-bg: #ccfbf1;
+}
+
+[data-theme="yellow"] {
+    /* --sidebar-bg: #fefce8; */
+    --sidebar-bg: #ffffff;
+    --sidebar-text: #ca8a04;
+    --sidebar-hover-bg: #fef9c3;
+    --sidebar-active-bg: #fde047;
+    --sidebar-icon-bg: #eab308;
+    --sidebar-icon-color: #000000;
+    --sidebar-icon-hover-bg: #fef9c3;
+}
+
+[data-theme="pink"] {
+    /* --sidebar-bg: #fdf2f8; */
+    --sidebar-bg: #ffffff;
+    --sidebar-text: #be185d;
+    --sidebar-hover-bg: #fce7f3;
+    --sidebar-active-bg: #f9a8d4;
+    --sidebar-icon-bg: #ec4899;
+    --sidebar-icon-color: #ffffff;
+    --sidebar-icon-hover-bg: #fce7f3;
+}
+
+[data-theme="indigo"] {
+    --sidebar-bg: #1F3F49;
+    --sidebar-text: #ffffff;
+    --sidebar-hover-bg: #334155;
+    --sidebar-active-bg: #4F46E5;
+    --sidebar-icon-bg: #6366f1;
+    --sidebar-icon-color: #ffffff;
+    --sidebar-icon-hover-bg: #6366f1;
+}
+
+#theme-selector .theme-option {
+    width: 25px;
+    height: 25px;
+    border-radius: 100%;
+    cursor: pointer;
+    position: relative;
+    border: 2px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border 0.2s ease;
+    border: 1px solid gray;
+}
+
+#theme-selector .theme-option.selected {
+    border-color: #000;
+}
+
+#theme-selector .theme-option .check-icon {
+    color: black;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+/* Hover animation for hover show tooltip on description */
+@keyframes fade-in {
+    0% {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fade-in 0.2s ease-out;
+}
+
+/* Hover Animation for modal close icon */
+.rotate-on-hover {
+    transition: transform 0.5s ease-in-out;
+}
+
+.rotate-on-hover:hover {
+    transform: rotate(180deg);
+}
+
+table,
+table tbody,
+table tr,
+table td,
+table th {
+    white-space: nowrap;
+}
+
+/* Hide and show status bar on every listpage */
+.toggle-status-section {
+    transition: max-height 0.6s ease, opacity 0.5s ease, transform 0.5s ease,
+        filter 0.5s ease;
+    max-height: 1000px;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+    overflow: hidden;
+}
+
+.toggle-status-section.hide {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+    filter: blur(4px);
+    padding: 0;
+    margin: 0;
+}
+
+/* 🔘 Button with Glass Style */
+.toggle-status-section-btn {
+    transition: all 0.3s ease-in;
+}
+
+/* Validation css for email */
+.invalid {
+    border-color: red;
+}
+
+.note-editor.note-airframe .note-editing-area .note-editable, .note-editor.note-frame .note-editing-area .note-editable {
+
+    background-color: white !important;
+}
+

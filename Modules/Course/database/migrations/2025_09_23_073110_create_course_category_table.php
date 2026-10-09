@@ -1,0 +1,33 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration {
+    public function up(): void
+    {
+        Schema::create('tblcourse_category', function (Blueprint $table) {
+            $table->id();
+            $table->string('category_name')->nullable();
+            $table->string('page_link')->nullable();
+            $table->unsignedBigInteger('sub_category_id')->nullable();
+            $table->text('short_description')->nullable();
+             // Foreign keys
+            $table->unsignedBigInteger('company_id')->nullable();
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->unsignedBigInteger('updated_by')->nullable();
+            // Constraints
+            $table->foreign('company_id')->references('id')->on('tbl_company')->onDelete('cascade');
+            $table->foreign('created_by')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('updated_by')->references('id')->on('users')->onDelete('cascade');
+            $table->timestamps();
+            $table->softDeletes();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('course_category');
+    }
+};

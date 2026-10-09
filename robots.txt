@@ -1,0 +1,13 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /login/
+Disallow: /register/
+Disallow: /password/
+Disallow: /cart/
+Disallow: /checkout/
+Disallow: /api/
+Disallow: /search?
+Disallow: /*?*
+Allow: /
+
+Sitemap: https://scholaracad.com/sitemap.xml
