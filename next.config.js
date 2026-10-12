@@ -1,4 +1,12 @@
 module.exports = {
+  async rewrites() {
+    return [
+      {
+        source: '/backend-api/:path*',
+        destination: 'https://api.demotechalphonic.tech/:path*',
+      },
+    ];
+  },
   async redirects() {
     return [
       {
@@ -12,6 +20,6 @@ module.exports = {
         destination: 'https://scholaracad.com/:path*',
         permanent: true,
       },
-    ]
+    ];
   },
-}
+};

@@ -39,48 +39,87 @@ export const AuthProvider = ({ children }) => {
     return userLocation?.raw?.country.toLowerCase() || "in";
   }, [userLocation]);
 
-  useEffect(() => {
-    const login = async () => {
+  const [user, setUser] = useState(() => {
+    if (typeof window !== "undefined") {
       try {
-        const res = await fetch(`${API_BASE_URL}${APIENDPOINTS.LOGIN}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: "scholaracadadmin@amysoftech.in",
-            password: "12345678",
-          }),
-        }).catch((err) => {
-          console.error("Login fetch error:", err);
-          return null;
-        });
-
-        if (!res || !res.ok) {
-          throw new Error(res ? `Login failed with status: ${res.status}` : "Network error: Unable to reach API server");
-        }
-        const contentType = res?.headers?.get("content-type");
-
-        if (contentType?.includes("application/json")) {
-          const data = await res.json();
-          const authToken = data?.token || data?.access_token;
-          if (authToken) {
-            const isHttps = typeof window !== "undefined" && window.location.protocol === "https:";
-            Cookies.set("access_token", authToken, {
-              expires: 1,
-              secure: isHttps,
-              sameSite: "Lax",
-            });
-            setToken(authToken);
-          } else {
-            console.warn("No access_token or token found in response", data);
-          }
-        }
-      } catch (err) {
-        console.error("Login error:", err);
-      } finally {
-        setLoading(false);
+        const saved = localStorage.getItem("auth_user");
+        return saved ? JSON.parse(saved) : null;
+      } catch (e) {
+        return null;
       }
-    };
-    login();
+    }
+    return null;
+  });
+
+  const loginUser = async (email = "admin@hotelres.com", password = "12345678") => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_BASE_URL}${APIENDPOINTS.LOGIN}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      }).catch((err) => {
+        console.error("Login fetch error:", err);
+        return null;
+      });
+
+      if (!res || !res.ok) {
+        throw new Error(res ? `Login failed with status: ${res.status}` : "Network error: Unable to reach API server");
+      }
+      const contentType = res?.headers?.get("content-type");
+
+      if (contentType?.includes("application/json")) {
+        const data = await res.json();
+        const authToken = data?.token || data?.access_token;
+        if (authToken) {
+          const isHttps = typeof window !== "undefined" && window.location.protocol === "https:";
+          Cookies.set("access_token", authToken, {
+            expires: 1,
+            secure: isHttps,
+            sameSite: "Lax",
+          });
+          setToken(authToken);
+          if (data?.user) {
+            setUser(data.user);
+            try {
+              localStorage.setItem("auth_user", JSON.stringify(data.user));
+            } catch (e) {}
+          }
+          return { success: true, user: data?.user, token: authToken };
+        } else {
+          console.warn("No access_token or token found in response", data);
+          return { success: false, message: data?.message || "No token returned" };
+        }
+      }
+      return { success: false, message: "Invalid response format" };
+    } catch (err) {
+      console.error("Login error:", err);
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logoutUser = () => {
+    Cookies.remove("access_token");
+    setToken(null);
+    setUser(null);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem("auth_user");
+      } catch (e) {}
+    }
+  };
+
+  useEffect(() => {
+    if (!token) {
+      loginUser("admin@hotelres.com", "12345678");
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   // Fetch categories once token is ready
@@ -174,7 +213,16 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ token, loading, categories, countryLists, promoList }}
+      value={{
+        token,
+        user,
+        loading,
+        login: loginUser,
+        logout: logoutUser,
+        categories,
+        countryLists,
+        promoList,
+      }}
     >
       {children}
     </AuthContext.Provider>

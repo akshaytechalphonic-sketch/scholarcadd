@@ -1,10 +1,17 @@
 const rawApiUrl = (process.env.NEXT_PUBLIC_API_BASE_URL || "").trim();
-// Fallback to production backend if unset, empty, or configured with the old local/IP URL
-export const API_BASE_URL = (
-  rawApiUrl && !rawApiUrl.includes("187.127.154.235")
-    ? rawApiUrl
-    : "https://api.demotechalphonic.tech"
-).replace(/\/+$/, "");
+
+// On Vercel deployment domains (*.vercel.app), use same-origin proxy `/backend-api` to bypass browser CORS
+const isVercelBrowser =
+  typeof window !== "undefined" &&
+  (window.location.hostname.endsWith(".vercel.app") || window.location.hostname.includes("vercel.app"));
+
+export const API_BASE_URL = isVercelBrowser
+  ? "/backend-api"
+  : (
+      rawApiUrl && !rawApiUrl.includes("187.127.154.235")
+        ? rawApiUrl
+        : "https://api.demotechalphonic.tech"
+    ).replace(/\/+$/, "");
 
 const rawClientUrl = (process.env.NEXT_PUBLIC_CLIENT_BASE_URL || "").trim();
 export const CLIENT_BASE_URL = (
