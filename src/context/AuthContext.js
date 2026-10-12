@@ -4,9 +4,24 @@ const AuthContext = createContext();
 import Cookies from "js-cookie";
 
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(null);
+  const [token, setToken] = useState(() => {
+    if (typeof window !== "undefined") {
+      return Cookies.get("access_token") || null;
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("categories");
+        return saved ? JSON.parse(saved) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  });
    const [userLocation, setUserLocation] = useState(null);
     useEffect(() => {
       const saved = sessionStorage.getItem("userLocation");

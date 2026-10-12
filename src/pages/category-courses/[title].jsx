@@ -290,7 +290,7 @@ function Course() {
   const categoryDesc = categorydetails?.short_description || `Explore top certification courses in ${categoryName} at ScholarAcad.`;
 
   const categoryListingSchema = useMemo(() => {
-    const items = (categorycourselist?.data || []).map((c) => ({
+    const items = (categorycourselist?.courses || categorycourselist?.data || []).map((c) => ({
       name: c.course_title,
       url: `/${c.course_url_title || slugify(c.course_title)}`,
       description: c.course_description || "",

@@ -1,5 +1,15 @@
-export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "").trim();
-export const CLIENT_BASE_URL = (process.env.NEXT_PUBLIC_CLIENT_BASE_URL || "").trim();
+const rawApiUrl = (process.env.NEXT_PUBLIC_API_BASE_URL || "").trim();
+// Fallback to production backend if unset, empty, or configured with the old local/IP URL
+export const API_BASE_URL = (
+  rawApiUrl && !rawApiUrl.includes("187.127.154.235")
+    ? rawApiUrl
+    : "https://api.demotechalphonic.tech"
+).replace(/\/+$/, "");
+
+const rawClientUrl = (process.env.NEXT_PUBLIC_CLIENT_BASE_URL || "").trim();
+export const CLIENT_BASE_URL = (
+  rawClientUrl || "https://scholaracad.com"
+).replace(/\/+$/, "");
 
 export const APIENDPOINTS = {
   LOGIN: "/login-check",
