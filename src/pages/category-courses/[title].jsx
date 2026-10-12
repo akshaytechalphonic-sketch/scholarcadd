@@ -127,6 +127,14 @@ function Course() {
     const fetchcategorycourses = async () => {
       setLoadings(true);
       try {
+        const matchedCategory = categories?.find(
+          (c) =>
+            String(c.id) === String(title) ||
+            c.category_slug === title ||
+            slugify(c.category_name) === slugify(title)
+        );
+        const resolvedCategoryId = matchedCategory?.id || title;
+
         const res = await fetch(
           `${API_BASE_URL}${APIENDPOINTS.CATEGORIES_COURSES_LIST}`,
           {
@@ -137,7 +145,8 @@ function Course() {
               Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
-              category_id: title,
+              category_id: resolvedCategoryId,
+              country_id: (active_country || "in").toUpperCase(),
               page: currentPage,
               per_page: perPage,
             }),

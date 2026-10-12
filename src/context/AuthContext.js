@@ -46,16 +46,17 @@ export const AuthProvider = ({ children }) => {
 
         if (contentType?.includes("application/json")) {
           const data = await res.json();
-          if (data?.access_token) {
+          const authToken = data?.token || data?.access_token;
+          if (authToken) {
             const isHttps = typeof window !== "undefined" && window.location.protocol === "https:";
-            Cookies.set("access_token", data.access_token, {
+            Cookies.set("access_token", authToken, {
               expires: 1,
               secure: isHttps,
               sameSite: "Lax",
             });
-            setToken(data?.access_token);
+            setToken(authToken);
           } else {
-            console.warn("No access_token found in response");
+            console.warn("No access_token or token found in response", data);
           }
         }
       } catch (err) {

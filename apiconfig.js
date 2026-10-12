@@ -2,7 +2,7 @@ export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "").trim();
 export const CLIENT_BASE_URL = (process.env.NEXT_PUBLIC_CLIENT_BASE_URL || "").trim();
 
 export const APIENDPOINTS = {
-  LOGIN: "/login",
+  LOGIN: "/login-check",
   COURSE_CATEGORIES: "/course/category-and-course",
   RECENT_POSTS: "/api/list/recent-posts",
   ALL_COURSES: "/api/all-courses",
