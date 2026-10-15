@@ -56,6 +56,7 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
+        'https://scolarcadfront-oxccis6xx-swati-0206.vercel.app',
         'https://scolarcadfront.vercel.app',
         'https://scholaracad.com',
         'https://www.scholaracad.com',
@@ -63,7 +64,9 @@ return [
         'http://127.0.0.1:3000'
     ],
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '#^https://.*\.vercel\.app$#'
+    ],
 
     'allowed_headers' => ['*'],
 

@@ -76,7 +76,10 @@ class CourseQuizAdminController extends Controller
                         $encId = encrypt($row->id);
                         $editUrl = route('course-quiz-edit', ['id' => $encId]);
                         $courseSlug = $row->course?->url_title ?? '';
-                        $frontendBase = rtrim((string) (config('app.frontend_url') ?: env('FRONTEND_URL', 'https://scolarcadfront.vercel.app')), '/');
+                        $frontendBase = rtrim((string) (config('app.frontend_url') ?: env('FRONTEND_URL', '')), '/');
+                        if (empty($frontendBase) || str_contains($frontendBase, 'yourserver.com') || str_contains($frontendBase, 'localhost')) {
+                            $frontendBase = 'https://scolarcadfront-oxccis6xx-swati-0206.vercel.app';
+                        }
                         $previewUrl = $courseSlug ? $frontendBase . '/' . $courseSlug . '/quizzes' : '#';
 
                         $questionsUrl = route('course-quiz-questions', ['quizId' => $encId]);

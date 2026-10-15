@@ -55,7 +55,7 @@ return [
     'url' => env('APP_URL', 'http://localhost'),
 
     // Public website (Next.js) base URL, used to build canonical/breadcrumb URLs in APIs and admin links
-    'frontend_url' => env('FRONTEND_URL', env('NEXT_PUBLIC_CLIENT_BASE_URL', 'https://scolarcadfront.vercel.app')),
+    'frontend_url' => env('FRONTEND_URL', env('NEXT_PUBLIC_CLIENT_BASE_URL', 'https://scolarcadfront-oxccis6xx-swati-0206.vercel.app')),
 
     /*
     |--------------------------------------------------------------------------
