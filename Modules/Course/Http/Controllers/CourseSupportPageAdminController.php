@@ -74,7 +74,9 @@ class CourseSupportPageAdminController extends Controller
                         $encId = encrypt($row->id);
                         $editUrl = route('course-support-page-edit', ['id' => $encId]);
                         $courseSlug = $row->course?->url_title ?? '';
-                        $previewUrl = $courseSlug ? 'http://localhost:3000/' . $courseSlug . '/' . ($row->type === 'exam-format' ? 'exam' : $row->type) : '#';
+                        $subSlug = $row->slug ? $row->slug : ($row->type === 'exam-format' ? 'exam' : $row->type);
+                        $frontendBase = rtrim((string) (config('app.frontend_url') ?: env('FRONTEND_URL', 'https://scolarcadfront.vercel.app')), '/');
+                        $previewUrl = $courseSlug ? $frontendBase . '/' . $courseSlug . '/' . $subSlug : '#';
 
                         $html = '<div class="relative inline-block text-left dropdown">
                             <button type="button" class="dropdown-toggle text-gray-500 hover:text-gray-700 p-1 rounded hover:bg-gray-100">

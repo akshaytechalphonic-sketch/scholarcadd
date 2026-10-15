@@ -56,6 +56,7 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
+        'https://scolarcadfront.vercel.app',
         'https://scholaracad.com',
         'https://www.scholaracad.com',
         'http://localhost:3000',

@@ -76,7 +76,8 @@ class CourseQuizAdminController extends Controller
                         $encId = encrypt($row->id);
                         $editUrl = route('course-quiz-edit', ['id' => $encId]);
                         $courseSlug = $row->course?->url_title ?? '';
-                        $previewUrl = $courseSlug ? 'http://localhost:3000/' . $courseSlug . '/quizzes' : '#';
+                        $frontendBase = rtrim((string) (config('app.frontend_url') ?: env('FRONTEND_URL', 'https://scolarcadfront.vercel.app')), '/');
+                        $previewUrl = $courseSlug ? $frontendBase . '/' . $courseSlug . '/quizzes' : '#';
 
                         $questionsUrl = route('course-quiz-questions', ['quizId' => $encId]);
 
