@@ -80,7 +80,7 @@ class CourseDocs
         ],
         responses: [
             new OA\Response(response: 200, description: 'Quizzes fetched successfully'),
-            new OA\Response(response: 404, description: 'Course not found')
+            new OA\Response(response: 404, description: 'Course not found / No published quizzes or mock exams available for this course')
         ]
     )]
     public function getCourseQuizzes() {}

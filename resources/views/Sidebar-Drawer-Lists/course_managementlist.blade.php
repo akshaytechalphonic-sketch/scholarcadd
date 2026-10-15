@@ -68,6 +68,16 @@
                             {{ __('Course.Dynamic Course Pages') }}
                         </a>
                     </li>
+                    <li class="list-view">
+                        <a title="Course Support Pages" href="{{ route('course-support-page-list') }}">
+                            Course Support Pages (Exam/Syllabus)
+                        </a>
+                    </li>
+                    <li class="list-view">
+                        <a title="Course Quizzes" href="{{ route('course-quiz-list') }}">
+                            Course Quizzes & Mock Exams
+                        </a>
+                    </li>
                     <li class="list-view"><a
                             href="{{ route('master-parent-list', ['ty' => encrypt('Continent')]) }}">{{ __('common.Continent') }}</a>
                     </li>

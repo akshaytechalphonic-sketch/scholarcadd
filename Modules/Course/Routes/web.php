@@ -10,6 +10,8 @@ use Modules\Course\Http\Controllers\DynamicCourseTuitionFeeController;
 use Modules\Course\Http\Controllers\CourseSeoController;
 use Modules\Course\Http\Controllers\PromoCodeController;
 use Modules\Course\Http\Controllers\CourseRegionController;
+use Modules\Course\Http\Controllers\CourseSupportPageAdminController;
+use Modules\Course\Http\Controllers\CourseQuizAdminController;
 
 
  Route::get('/get-child-stateName', [CourseMasterController::class, 'get_filtered_stateName'])->name('get-child-stateName');
@@ -209,6 +211,37 @@ Route::prefix('region')->middleware(['web','auth'])->group(function () {
 //     return view('Course::promo-code.create');
 // })->name('promo-code.create');
 
+
+// Course Support Pages (Exam Format, Syllabus, Notes)
+Route::prefix('course-support-page')->middleware(['web', 'auth'])->group(function () {
+    Route::get('/list', [CourseSupportPageAdminController::class, 'index'])->name('course-support-page-list');
+    Route::get('/create', [CourseSupportPageAdminController::class, 'create'])->name('course-support-page-create');
+    Route::post('/store', [CourseSupportPageAdminController::class, 'store'])->name('course-support-page-store');
+    Route::get('/edit/{id}', [CourseSupportPageAdminController::class, 'edit'])->name('course-support-page-edit');
+    Route::post('/update', [CourseSupportPageAdminController::class, 'store'])->name('course-support-page-update');
+    Route::get('/delete/{id}', [CourseSupportPageAdminController::class, 'destroy'])->name('course-support-page-destroy');
+    Route::post('/toggle-status', [CourseSupportPageAdminController::class, 'toggleStatus'])->name('course-support-page-toggle-status');
+});
+
+// Course Quizzes & Mock Exams
+Route::prefix('course-quiz')->middleware(['web', 'auth'])->group(function () {
+    Route::get('/list', [CourseQuizAdminController::class, 'index'])->name('course-quiz-list');
+    Route::get('/create', [CourseQuizAdminController::class, 'create'])->name('course-quiz-create');
+    Route::post('/store', [CourseQuizAdminController::class, 'store'])->name('course-quiz-store');
+    Route::get('/edit/{id}', [CourseQuizAdminController::class, 'edit'])->name('course-quiz-edit');
+    Route::post('/update', [CourseQuizAdminController::class, 'store'])->name('course-quiz-update');
+    Route::get('/delete/{id}', [CourseQuizAdminController::class, 'destroy'])->name('course-quiz-destroy');
+    Route::post('/toggle-status', [CourseQuizAdminController::class, 'toggleStatus'])->name('course-quiz-toggle-status');
+
+    // Questions Management
+    Route::get('/{quizId}/questions', [CourseQuizAdminController::class, 'questions'])->name('course-quiz-questions');
+    Route::get('/{quizId}/questions/create', [CourseQuizAdminController::class, 'createQuestion'])->name('course-quiz-question-create');
+    Route::post('/{quizId}/questions/store', [CourseQuizAdminController::class, 'storeQuestion'])->name('course-quiz-question-store');
+    Route::get('/{quizId}/questions/{questionId}/edit', [CourseQuizAdminController::class, 'createQuestion'])->name('course-quiz-question-edit');
+    Route::get('/{quizId}/questions/{questionId}/delete', [CourseQuizAdminController::class, 'destroyQuestion'])->name('course-quiz-question-destroy');
+    Route::get('/{quizId}/questions/sample-csv', [CourseQuizAdminController::class, 'downloadSampleCsv'])->name('course-quiz-questions-sample-csv');
+    Route::post('/{quizId}/questions/import-csv', [CourseQuizAdminController::class, 'importQuestions'])->name('course-quiz-questions-import-csv');
+});
 
 include_once __DIR__.'/youtube.php';
 include_once __DIR__.'/dynamicCoursePages.php';

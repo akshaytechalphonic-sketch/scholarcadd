@@ -50,7 +50,13 @@ class ApiMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         // ✅ Skip auth check for public routes
-        if ($request->is('api/login') || $request->is('api/maintenance-check') || $request->is('api/fetch-features') || $request->is('api/ccavenue/callback')) {
+        if (
+            $request->is('api/login') ||
+            $request->is('api/maintenance-check') ||
+            $request->is('api/fetch-features') ||
+            $request->is('api/ccavenue/callback') ||
+            $request->is('api/courses/*')
+        ) {
             return $next($request);
         }
 

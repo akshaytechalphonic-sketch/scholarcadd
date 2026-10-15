@@ -29,15 +29,36 @@ class CourseSupportPageController extends Controller
     }
 
     /**
+     * GET /api/courses/{courseSlug}/support/exam or /api/courses/{courseSlug}/exam
+     */
+    public function exam(string $courseSlug)
+    {
+        return $this->getSupportPageResponse($courseSlug, CourseSupportPage::TYPE_EXAM_FORMAT, 'Exam format');
+    }
+
+    /**
+     * GET /api/courses/{courseSlug}/support/{pageType}
+     * Supports all Scope 5.8 types: eligibility, study-plan, corporate-training, practice-test, faqs, certification-benefits, certification-guide, notes, etc.
+     */
+    public function showPage(string $courseSlug, string $pageType)
+    {
+        return $this->getSupportPageResponse($courseSlug, $pageType, ucfirst(str_replace('-', ' ', $pageType)));
+    }
+
+    /**
      * Shared helper to fetch and format dynamic support pages
      */
     protected function getSupportPageResponse(string $courseSlug, string $type, string $displayName)
     {
         try {
+            $types = ($type === CourseSupportPage::TYPE_EXAM_FORMAT || $type === 'exam')
+                ? [CourseSupportPage::TYPE_EXAM_FORMAT, 'exam']
+                : [$type];
+
             $course = Course::where('url_title', $courseSlug)
                 ->where('status', 'Active')
                 ->whereNull('deleted_at')
-                ->with(['supportPages' => fn ($q) => $q->ofType($type)->published()])
+                ->with(['supportPages' => fn ($q) => $q->whereIn('type', $types)->published()])
                 ->first();
 
             if (!$course) {

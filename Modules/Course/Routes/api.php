@@ -57,6 +57,9 @@ Route::group(['middleware' => 'api', 'prefix' => 'course'], function () {
 Route::group(['middleware' => 'api', 'prefix' => 'courses'], function () {
     Route::get('{courseSlug}/support/syllabus', [CourseSupportPageController::class, 'syllabus']);
     Route::get('{courseSlug}/support/exam-format', [CourseSupportPageController::class, 'examFormat']);
+    Route::get('{courseSlug}/support/exam', [CourseSupportPageController::class, 'exam']);
+    Route::get('{courseSlug}/exam', [CourseSupportPageController::class, 'exam']);
+    Route::get('{courseSlug}/support/{pageType}', [CourseSupportPageController::class, 'showPage']);
     Route::get('{courseSlug}/quizzes', [QuizController::class, 'quizzes']);
     Route::get('{courseSlug}/quizzes/{quizSlug}', [QuizController::class, 'show']);
     Route::get('{courseSlug}/quizzes/{quizSlug}/questions', [QuizController::class, 'questions']);

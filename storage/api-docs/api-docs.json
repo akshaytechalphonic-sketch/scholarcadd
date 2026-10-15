@@ -710,7 +710,7 @@
                         "description": "Quizzes fetched successfully"
                     },
                     "404": {
-                        "description": "Course not found"
+                        "description": "Course not found / No published quizzes or mock exams available for this course"
                     }
                 }
             }
