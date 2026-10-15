@@ -95,10 +95,9 @@ export default function DedicatedQuizzesPage({
       try {
         const headers = {
           Accept: "application/json",
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         };
-        if (token) {
-          headers.Authorization = `Bearer ${token}`;
-        }
 
         const endpoint = `${API_BASE_URL}/api/courses/${targetCourseSlug}/quizzes`;
         const res = await fetch(endpoint, {
@@ -107,15 +106,13 @@ export default function DedicatedQuizzesPage({
         });
 
         if (!res.ok) {
-          if (res.status === 404) {
-            if (isMounted) {
-              setQuizzes([]);
-              setError("No quizzes found for this course.");
-            }
-          } else {
-            if (isMounted) {
-              setError("Failed to fetch quizzes. Please try again later.");
-            }
+          if (isMounted) {
+            setQuizzes([]);
+            setError(
+              res.status === 404
+                ? "No published quizzes or mock exams available for this course."
+                : "Failed to fetch quizzes. Please try again later."
+            );
           }
           if (isMounted) setLoading(false);
           return;
@@ -123,21 +120,21 @@ export default function DedicatedQuizzesPage({
 
         const data = await res.json();
         if (isMounted) {
-          if (data?.status && Array.isArray(data?.data)) {
+          if (data?.status && Array.isArray(data?.data) && data.data.length > 0) {
             setQuizzes(data.data);
             if (data.course) {
               setCourseInfo(data.course);
             }
-          } else if (Array.isArray(data)) {
-            setQuizzes(data);
+            setError(null);
           } else {
             setQuizzes([]);
+            setError("No published quizzes or mock exams available for this course.");
           }
-          setError(null);
         }
       } catch (err) {
         console.error("Error fetching quizzes:", err);
         if (isMounted) {
+          setQuizzes([]);
           setError("Network error while loading quizzes. Please check your connection.");
         }
       } finally {
@@ -226,6 +223,73 @@ export default function DedicatedQuizzesPage({
       ],
     });
   }, [courseDisplayName, targetCourseSlug]);
+
+  if (loading) {
+    return (
+      <>
+        <DynamicSEO
+          title={`Loading Quizzes — ${courseDisplayName} | ScholarAcad`}
+          description="Loading course quizzes and exam simulator."
+          robots="noindex, nofollow"
+        />
+        <Navbar />
+        <main className="min-h-[70vh] bg-[#f8fafc] flex flex-col items-center justify-center p-8 space-y-4">
+          <Loader />
+          <p className="text-slate-500 text-sm font-medium animate-pulse">
+            Loading course quizzes and exam simulator...
+          </p>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  if (error || !quizzes || quizzes.length === 0) {
+    return (
+      <>
+        <DynamicSEO
+          title={`404 - Exam Simulator Not Available | ScholarAcad`}
+          description="The requested quizzes or exam simulator are not available or not published for this course."
+          robots="noindex, nofollow"
+        />
+        <Navbar />
+        <main className="min-h-[70vh] bg-[#f8fafc] flex items-center justify-center px-4 py-16">
+          <div className="max-w-md w-full bg-white rounded-3xl p-8 sm:p-10 text-center shadow-sm border border-slate-200/80 space-y-6">
+            <div className="w-20 h-20 bg-purple-50 text-[#6520b8] rounded-2xl flex items-center justify-center mx-auto text-4xl shadow-inner">
+              <MdQuiz />
+            </div>
+            <div className="space-y-2">
+              <span className="text-xs font-black tracking-widest text-purple-600 uppercase bg-purple-100/60 px-3.5 py-1 rounded-full">
+                404 Not Found
+              </span>
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+                Exam Simulator Not Available
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+                {error ||
+                  `There are no published quizzes or mock exams available for "${courseDisplayName}". This module is either not active or requires special course permissions.`}
+              </p>
+            </div>
+            <div className="pt-2 flex flex-col sm:flex-row gap-3">
+              <Link
+                href={targetCourseSlug ? `/${targetCourseSlug}` : "/all-courses"}
+                className="flex-1 py-3 px-4 rounded-xl text-xs font-bold bg-[#6520b8] hover:bg-[#53169c] text-white shadow-md transition"
+              >
+                View Course Overview
+              </Link>
+              <Link
+                href="/all-courses"
+                className="py-3 px-4 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+              >
+                Browse All Courses
+              </Link>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>

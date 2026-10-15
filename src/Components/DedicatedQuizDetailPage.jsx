@@ -156,16 +156,20 @@ export default function DedicatedQuizDetailPage({
     setAttemptError(null);
 
     try {
+      if (!token) {
+        setAttemptError("Login required to start or resume this exam simulation. Please log in to your account.");
+        setStartingMode(null);
+        return;
+      }
+
       const headers = {
         Accept: "application/json",
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       };
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
 
-      // Call Start Attempt API (POST /api/courses/{courseSlug}/quizzes/{quizSlug}/start or /attempts)
-      let res = await fetch(
+      // Call Start Attempt API (POST /api/courses/{courseSlug}/quizzes/{quizSlug}/start)
+      const res = await fetch(
         `${API_BASE_URL}/api/courses/${courseSlug}/quizzes/${quizSlug}/start`,
         {
           method: "POST",
@@ -175,14 +179,15 @@ export default function DedicatedQuizDetailPage({
       );
 
       if (res.status === 404) {
-        res = await fetch(
-          `${API_BASE_URL}/api/courses/${courseSlug}/quizzes/${quizSlug}/attempts`,
-          {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ mode }),
-          }
-        );
+        setAttemptError("This quiz or exam simulator is currently not published or not available.");
+        setStartingMode(null);
+        return;
+      }
+
+      if (res.status === 401 || res.status === 403) {
+        setAttemptError("Login session expired or access denied. Please log in with an enrolled account.");
+        setStartingMode(null);
+        return;
       }
 
       const json = await res.json();

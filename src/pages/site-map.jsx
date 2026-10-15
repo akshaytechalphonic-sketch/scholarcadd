@@ -82,36 +82,6 @@ export default function Sitemap() {
     fetchAllData();
   }, [token]);
 
-   // Fetch categories once token is ready
-  useEffect(() => {
-    if (!token) return;
-    const fetchCategories = async () => {
-      try {
-        const res = await fetch(
-          `${API_BASE_URL}${APIENDPOINTS.COURSE_CATEGORIES}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              country_id: active_country,
-            }),
-          },
-        );
-        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
-        const data = await res.json();
-        // if (data?.data) {
-        //   setCategories(data.data);
-        // }
-      } catch (err) {
-        console.error("Error fetching categories:", err);
-      }
-    };
-    fetchCategories();
-  }, [token]);
 
   return (
     <>

@@ -175,6 +175,52 @@ export default function DedicatedSyllabusPage({
     );
   }
 
+  if (!loading && (!courseData || (!courseData?.support_page && !courseData?.courseDescription?.curriculum && !courseData?.curriculum))) {
+    return (
+      <>
+        <DynamicSEO
+          title={`404 - ${pageLabel} Not Found | ScholarAcad`}
+          description={`The ${pageLabel.toLowerCase()} page for this course is not published or available.`}
+          robots="noindex, nofollow"
+        />
+        <Navbar />
+        <main className="min-h-[70vh] bg-[#f8fafc] flex items-center justify-center px-4 py-16">
+          <div className="max-w-md w-full bg-white rounded-3xl p-8 sm:p-10 text-center shadow-sm border border-slate-200/80 space-y-6">
+            <div className="w-20 h-20 bg-purple-50 text-[#6520b8] rounded-2xl flex items-center justify-center mx-auto text-4xl shadow-inner">
+              <MdOutlineMenuBook />
+            </div>
+            <div className="space-y-2">
+              <span className="text-xs font-black tracking-widest text-purple-600 uppercase bg-purple-100/60 px-3.5 py-1 rounded-full">
+                404 Not Found
+              </span>
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+                {pageLabel} Not Available
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+                The {pageLabel.toLowerCase()} support page for &quot;{courseTitle}&quot; has not been published or requires special permissions.
+              </p>
+            </div>
+            <div className="pt-2 flex flex-col sm:flex-row gap-3">
+              <Link
+                href={mainCourseUrl}
+                className="flex-1 py-3 px-4 rounded-xl text-xs font-bold bg-[#6520b8] hover:bg-[#53169c] text-white shadow-md transition"
+              >
+                View Course Overview
+              </Link>
+              <Link
+                href="/all-courses"
+                className="py-3 px-4 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+              >
+                Browse All Courses
+              </Link>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
   return (
     <>
       <DynamicSEO

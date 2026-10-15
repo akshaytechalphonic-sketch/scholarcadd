@@ -88,22 +88,27 @@ export default function DedicatedQuizQuestionsPage({
       try {
         const headers = {
           Accept: "application/json",
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         };
-        if (token) {
-          headers.Authorization = `Bearer ${token}`;
-        }
 
-        const endpoint = `${API_BASE_URL}/api/courses/${courseSlug}/quizzes/${quizSlug}/questions`;
+        const qs = attemptMode ? `?mode=${encodeURIComponent(attemptMode)}` : "";
+        const endpoint = `${API_BASE_URL}/api/courses/${courseSlug}/quizzes/${quizSlug}/questions${qs}`;
         const res = await fetch(endpoint, {
           method: "GET",
           headers,
         });
 
         if (!res.ok) {
-          if (res.status === 404) {
-            if (isMounted) setError("Quiz questions not found.");
-          } else {
-            if (isMounted) setError("Failed to fetch questions. Please try again later.");
+          if (isMounted) {
+            setData(null);
+            setError(
+              res.status === 404
+                ? "Quiz questions not found or not published for this course."
+                : res.status === 401 || res.status === 403
+                ? "Authentication required. Please log in to view exam questions."
+                : "Failed to fetch questions. Please try again later."
+            );
           }
           if (isMounted) setLoading(false);
           return;
@@ -111,16 +116,18 @@ export default function DedicatedQuizQuestionsPage({
 
         const json = await res.json();
         if (isMounted) {
-          if (json?.status && json?.data) {
+          if (json?.status && json?.data && Array.isArray(json?.data?.questions) && json.data.questions.length > 0) {
             setData(json.data);
             setError(null);
           } else {
-            setError("Invalid questions payload received.");
+            setData(null);
+            setError("Quiz questions not found or not published for this course.");
           }
         }
       } catch (err) {
         console.error("Error fetching questions:", err);
         if (isMounted) {
+          setData(null);
           setError("Network error while loading questions. Please check your connection.");
         }
       } finally {
@@ -213,6 +220,13 @@ export default function DedicatedQuizQuestionsPage({
       // ignore quota errors
     }
   }, [selectedAnswers, flaggedQuestions, currentIndex, timeRemaining, timeSpentSeconds, isSubmitted, storageKey, totalQuestions]);
+
+  const isPracticeMode = useMemo(() => {
+    return (
+      attemptMode === "practice" ||
+      (quiz?.type || "").toLowerCase().includes("practice")
+    );
+  }, [attemptMode, quiz]);
 
   const courseDisplayName = useMemo(() => {
     if (course?.name) return course.name;
@@ -604,6 +618,31 @@ export default function DedicatedQuizQuestionsPage({
                       currentQuestion.options.map((option) => {
                         const isSelected =
                           selectedAnswers[currentQuestion.id] === option.id;
+                        const hasAnswered = Boolean(selectedAnswers[currentQuestion.id]);
+                        const isCorrectOption = Boolean(option.is_correct);
+
+                        let cardStyle = "border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/60";
+                        let badgeStyle = "bg-slate-100 text-slate-700 border border-slate-200";
+                        let iconEl = <FaRegCircle className="text-slate-300" />;
+
+                        if (isPracticeMode && hasAnswered) {
+                          if (isCorrectOption) {
+                            cardStyle = "border-emerald-500 bg-emerald-50/90 text-emerald-950 font-semibold ring-2 ring-emerald-500 shadow-sm";
+                            badgeStyle = "bg-emerald-600 text-white";
+                            iconEl = <FaCheck className="text-emerald-600 font-bold" />;
+                          } else if (isSelected && !isCorrectOption) {
+                            cardStyle = "border-rose-500 bg-rose-50/90 text-rose-950 font-semibold ring-2 ring-rose-500 shadow-sm";
+                            badgeStyle = "bg-rose-600 text-white";
+                            iconEl = <FaTimes className="text-rose-600 font-bold" />;
+                          } else {
+                            cardStyle = "border-slate-200 bg-white opacity-50 text-slate-400";
+                            badgeStyle = "bg-slate-100 text-slate-400 border border-slate-200";
+                          }
+                        } else if (isSelected) {
+                          cardStyle = "border-[#6520b8] bg-purple-50/70 shadow-sm ring-1 ring-[#6520b8]";
+                          badgeStyle = "bg-[#6520b8] text-white";
+                          iconEl = <FaCheckCircle className="text-[#6520b8]" />;
+                        }
 
                         return (
                           <button
@@ -612,19 +651,11 @@ export default function DedicatedQuizQuestionsPage({
                             onClick={() =>
                               handleSelectOption(currentQuestion.id, option.id)
                             }
-                            className={`w-full text-left p-4 rounded-2xl border-2 transition-all duration-200 flex items-start gap-3.5 cursor-pointer ${
-                              isSelected
-                                ? "border-[#6520b8] bg-purple-50/70 shadow-sm ring-1 ring-[#6520b8]"
-                                : "border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/60"
-                            }`}
+                            className={`w-full text-left p-4 rounded-2xl border-2 transition-all duration-200 flex items-start gap-3.5 cursor-pointer ${cardStyle}`}
                           >
                             {/* Option Label Badge (A, B, C, D) */}
                             <span
-                              className={`w-8 h-8 rounded-xl font-bold text-xs flex items-center justify-center shrink-0 transition-colors ${
-                                isSelected
-                                  ? "bg-[#6520b8] text-white"
-                                  : "bg-slate-100 text-slate-700 border border-slate-200"
-                              }`}
+                              className={`w-8 h-8 rounded-xl font-bold text-xs flex items-center justify-center shrink-0 transition-colors ${badgeStyle}`}
                             >
                               {option.option_label || ""}
                             </span>
@@ -645,18 +676,32 @@ export default function DedicatedQuizQuestionsPage({
                               )}
                             </div>
 
-                            {/* Radio Check Circle */}
+                            {/* Check Circle / Result Icon */}
                             <div className="pt-1 text-lg shrink-0">
-                              {isSelected ? (
-                                <FaCheckCircle className="text-[#6520b8]" />
-                              ) : (
-                                <FaRegCircle className="text-slate-300" />
-                              )}
+                              {iconEl}
                             </div>
                           </button>
                         );
                       })}
                   </div>
+
+                  {/* Practice Mode Explanation Box */}
+                  {isPracticeMode && selectedAnswers[currentQuestion.id] && currentQuestion?.explanation && (
+                    <div className="mt-5 p-4 sm:p-5 rounded-2xl bg-amber-50/90 border border-amber-200 shadow-sm space-y-2 animate-fadeIn">
+                      <div className="flex items-center gap-2 text-xs font-black text-amber-900 uppercase tracking-wider">
+                        <FaCheckCircle className="text-emerald-600 text-base" />
+                        <span>Explanation & Rationale</span>
+                        {currentQuestion.correct_option_label && (
+                          <span className="ml-auto bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-300">
+                            Correct: Option {currentQuestion.correct_option_label}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-line font-medium pt-1">
+                        {currentQuestion.explanation}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Bottom Navigation Bar */}

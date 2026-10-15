@@ -30,17 +30,15 @@ export async function getServerSideProps({ req, params }) {
       },
     });
 
-    if (!res.ok) {
-      return {
-        props: {
-          courseSlug,
-          initialQuizzes: [],
-          courseData: null,
-        },
-      };
+    if (res.status === 404 || !res.ok) {
+      return { notFound: true };
     }
 
     const data = await res.json();
+    if (!data?.status || !data?.data || (Array.isArray(data.data) && data.data.length === 0)) {
+      return { notFound: true };
+    }
+
     return {
       props: {
         courseSlug,
@@ -49,12 +47,6 @@ export async function getServerSideProps({ req, params }) {
       },
     };
   } catch (e) {
-    return {
-      props: {
-        courseSlug,
-        initialQuizzes: [],
-        courseData: null,
-      },
-    };
+    return { notFound: true };
   }
 }

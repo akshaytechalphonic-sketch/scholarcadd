@@ -51,12 +51,18 @@ export const AuthProvider = ({ children }) => {
     return null;
   });
 
-  const loginUser = async (email = "admin@hotelres.com", password = "12345678") => {
+  const DEFAULT_EMAIL = process.env.NEXT_PUBLIC_AUTH_EMAIL || "admin@hotelres.com";
+  const DEFAULT_PASSWORD = process.env.NEXT_PUBLIC_AUTH_PASSWORD || "12345678";
+
+  const loginUser = async (email = DEFAULT_EMAIL, password = DEFAULT_PASSWORD) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_BASE_URL}${APIENDPOINTS.LOGIN}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
         body: JSON.stringify({
           email,
           password,
@@ -67,13 +73,17 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (!res || !res.ok) {
-        throw new Error(res ? `Login failed with status: ${res.status}` : "Network error: Unable to reach API server");
+        const errorMsg = res
+          ? `Login failed with status: ${res.status}`
+          : "Network error: Unable to reach API server";
+        console.warn(errorMsg);
+        return { success: false, error: errorMsg };
       }
       const contentType = res?.headers?.get("content-type");
 
       if (contentType?.includes("application/json")) {
         const data = await res.json();
-        const authToken = data?.token || data?.access_token;
+        const authToken = data?.token || data?.access_token || data?.data?.token;
         if (authToken) {
           const isHttps = typeof window !== "undefined" && window.location.protocol === "https:";
           Cookies.set("access_token", authToken, {
@@ -116,7 +126,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     if (!token) {
-      loginUser("admin@hotelres.com", "12345678");
+      loginUser();
     } else {
       setLoading(false);
     }
@@ -124,8 +134,10 @@ export const AuthProvider = ({ children }) => {
 
   // Fetch categories once token is ready
   useEffect(() => {
-    if (!token) return;
-    const fetchCategories = async () => {
+    let isCancelled = false;
+
+    const fetchCategories = async (authToken = token, isRetry = false) => {
+      if (!authToken) return;
       try {
         const res = await fetch(
           `${API_BASE_URL}${APIENDPOINTS.COURSE_CATEGORIES}`,
@@ -134,7 +146,7 @@ export const AuthProvider = ({ children }) => {
             headers: {
               "Content-Type": "application/json",
               Accept: "application/json",
-              Authorization: `Bearer ${token}`,
+              Authorization: `Bearer ${authToken}`,
             },
             body: JSON.stringify({
               country_id: active_country,
@@ -142,23 +154,47 @@ export const AuthProvider = ({ children }) => {
           },
         );
 
-        if (!res?.ok) throw new Error(`HTTP error! Status: ${res?.status}`);
+        // Handle expired or invalid token by refreshing and retrying once
+        if (res.status === 401 && !isRetry) {
+          console.warn(
+            "Categories API returned 401 (token invalid or expired). Refreshing session..."
+          );
+          Cookies.remove("access_token");
+          const loginRes = await loginUser();
+          if (loginRes?.success && loginRes?.token && !isCancelled) {
+            return fetchCategories(loginRes.token, true);
+          }
+          return;
+        }
+
+        if (!res.ok) {
+          console.warn(`Categories API request returned status: ${res.status}`);
+          return;
+        }
+
         const data = await res.json();
-        if (data?.data) {
+        if (data?.data && Array.isArray(data.data) && !isCancelled) {
           setCategories(data.data);
-          localStorage.setItem("categories", JSON.stringify(data.data));
+          try {
+            localStorage.setItem("categories", JSON.stringify(data.data));
+          } catch (e) {}
         }
       } catch (err) {
         console.error("Error fetching categories:", err);
       }
     };
+
     fetchCategories();
-  }, [token]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [token, active_country]);
 
   const [countryLists, setcoutryLists] = useState([]);
-  // console.log("countryLists------main", countryLists);
   useEffect(() => {
     if (!token) return;
+    let isCancelled = false;
     const FetchCountryList = async () => {
       try {
         const res = await fetch(`${API_BASE_URL}${APIENDPOINTS.COUNTRY_LIST}`, {
@@ -169,22 +205,31 @@ export const AuthProvider = ({ children }) => {
             Authorization: `Bearer ${token}`,
           },
         });
+        if (res.status === 401) {
+          return;
+        }
         if (!res.ok) {
           setcoutryLists([]);
           return;
         }
         const data = await res.json();
-        setcoutryLists(data?.data || []);
+        if (!isCancelled) {
+          setcoutryLists(data?.data || []);
+        }
       } catch (err) {
         console.error("Error fetching CountryList:", err);
       }
     };
     FetchCountryList();
+    return () => {
+      isCancelled = true;
+    };
   }, [token]);
 
   const [promoList, setPromoList] = useState(null);
   useEffect(() => {
     if (!token) return;
+    let isCancelled = false;
     const Fetchpromo = async () => {
       try {
         const res = await fetch(`${API_BASE_URL}${APIENDPOINTS.PROMO_LIST}`, {
@@ -195,13 +240,16 @@ export const AuthProvider = ({ children }) => {
             Authorization: `Bearer ${token}`,
           },
         });
+        if (res.status === 401) {
+          return;
+        }
         if (!res.ok) {
           console.warn("HTTP error! Status:", res.status);
           setPromoList(null);
           return;
         }
         const data = await res.json();
-        if (data?.data?.length > 0) {
+        if (!isCancelled && data?.data?.length > 0) {
           setPromoList(data.data);
         }
       } catch (err) {
@@ -209,6 +257,9 @@ export const AuthProvider = ({ children }) => {
       }
     };
     Fetchpromo();
+    return () => {
+      isCancelled = true;
+    };
   }, [token]);
 
   return (

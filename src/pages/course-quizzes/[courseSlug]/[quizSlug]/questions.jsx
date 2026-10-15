@@ -39,17 +39,15 @@ export async function getServerSideProps({ req, params }) {
       }
     );
 
-    if (!res.ok) {
-      return {
-        props: {
-          courseSlug,
-          quizSlug,
-          initialData: null,
-        },
-      };
+    if (res.status === 404 || !res.ok) {
+      return { notFound: true };
     }
 
     const json = await res.json();
+    if (!json?.status || !json?.data || !json?.data?.questions || (Array.isArray(json.data.questions) && json.data.questions.length === 0)) {
+      return { notFound: true };
+    }
+
     const quizTitle = json?.data?.quiz?.title || "Exam Simulator";
     const courseName = json?.data?.course?.name || courseSlug;
 
@@ -63,12 +61,6 @@ export async function getServerSideProps({ req, params }) {
       },
     };
   } catch (e) {
-    return {
-      props: {
-        courseSlug,
-        quizSlug,
-        initialData: null,
-      },
-    };
+    return { notFound: true };
   }
 }

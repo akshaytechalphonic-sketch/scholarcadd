@@ -276,10 +276,17 @@ function DynamicPage({ courseData: initialCourseData = null }) {
     FetchCountryList();
   }, [token]);
 
+  const quizIdx = useMemo(() => {
+    return (slug || []).findIndex(
+      (s) => ["quizzes", "quiz", "quizz"].includes(s?.toLowerCase())
+    );
+  }, [slug]);
+
   // Supported subpages / support page slugs
   const SUPPORT_PAGE_SLUGS = [
     "syllabus",
     "notes",
+    "exam",
     "exam-format",
     "eligibility",
     "study-plan",
@@ -291,12 +298,13 @@ function DynamicPage({ courseData: initialCourseData = null }) {
   ];
 
   const matchedSupportPage = useMemo(() => {
+    if (quizIdx !== -1) return null;
     return (
       (slug || []).find((s) =>
         SUPPORT_PAGE_SLUGS.includes(s?.toLowerCase())
       )?.toLowerCase() || null
     );
-  }, [slug]);
+  }, [slug, quizIdx]);
 
   const isSyllabus = useMemo(() => {
     return matchedSupportPage === "syllabus";
@@ -309,12 +317,6 @@ function DynamicPage({ courseData: initialCourseData = null }) {
   const isSupportPage = useMemo(() => {
     return Boolean(matchedSupportPage);
   }, [matchedSupportPage]);
-
-  const quizIdx = useMemo(() => {
-    return (slug || []).findIndex(
-      (s) => s?.toLowerCase() === "quizzes" || s?.toLowerCase() === "quiz"
-    );
-  }, [slug]);
 
   const isQuestionsScreen = useMemo(() => {
     return (
@@ -346,8 +348,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
     return (slug || []).filter(
       (s, idx) =>
         !SUPPORT_PAGE_SLUGS.includes(s?.toLowerCase()) &&
-        s?.toLowerCase() !== "quizzes" &&
-        s?.toLowerCase() !== "quiz" &&
+        !["quizzes", "quiz", "quizz"].includes(s?.toLowerCase()) &&
         (!isQuizDetail && !isQuestionsScreen ? true : idx !== quizIdx + 1) &&
         (!isQuestionsScreen ? true : idx !== quizIdx + 2)
     );
@@ -456,7 +457,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
       return;
     }
     const isQuizPath = segments.some(
-      (s) => s?.toLowerCase() === "quizzes" || s?.toLowerCase() === "quiz"
+      (s) => ["quizzes", "quiz", "quizz"].includes(s?.toLowerCase())
     );
     const maxSegments = isQuizPath ? 5 : 4;
     if (segments.length > maxSegments) {
@@ -525,16 +526,20 @@ function DynamicPage({ courseData: initialCourseData = null }) {
             },
           });
           if (!res.ok) {
-            setError("Failed to fetch questions data.");
+            setError(
+              res.status === 404
+                ? "Quiz questions not found or not published."
+                : "Failed to fetch questions data."
+            );
             setCourseData(null);
             return;
           }
           const data = await res.json();
-          if (data?.status && data?.data) {
+          if (data?.status && data?.data && Array.isArray(data?.data?.questions) && data.data.questions.length > 0) {
             setCourseData(data.data);
             setError(null);
           } else {
-            setError("Quiz questions not found.");
+            setError("Quiz questions not found or not published.");
             setCourseData(null);
           }
         } else if (isQuizDetail && url_title && quiz_slug) {
@@ -548,16 +553,20 @@ function DynamicPage({ courseData: initialCourseData = null }) {
             },
           });
           if (!res.ok) {
-            setError("Failed to fetch quiz detail.");
+            setError(
+              res.status === 404
+                ? "Quiz details not found or not published."
+                : "Failed to fetch quiz detail."
+            );
             setCourseData(null);
             return;
           }
           const data = await res.json();
-          if (data?.status && data?.data) {
+          if (data?.status && data?.data && data?.data?.quiz) {
             setCourseData(data.data);
             setError(null);
           } else {
-            setError("Quiz detail not found.");
+            setError("Quiz detail not found or not published.");
             setCourseData(null);
           }
         } else if (isQuizzes && url_title) {
@@ -571,30 +580,61 @@ function DynamicPage({ courseData: initialCourseData = null }) {
             },
           });
           if (!res.ok) {
-            setError("Failed to fetch quizzes data.");
+            setError(
+              res.status === 404
+                ? "No published quizzes or mock exams available for this course."
+                : "Failed to fetch quizzes data."
+            );
             setCourseData(null);
             return;
           }
           const data = await res.json();
-          if (!data?.data || (Array.isArray(data.data) && data.data.length === 0)) {
-            setCourseData({ data: [], course: data?.course || null });
-            setError(null);
+          if (!data?.status || !data?.data || (Array.isArray(data.data) && data.data.length === 0)) {
+            setCourseData(null);
+            setError("No published quizzes or mock exams available for this course.");
           } else {
             setCourseData(data);
             setError(null);
           }
         } else if (isSupportPage && !isNotes && url_title) {
           // Fetch Support Page from /api/courses/{courseSlug}/support/{pageType}
-          const supportEndpoint = `${API_BASE_URL}/api/courses/${url_title}/support/${matchedSupportPage}`;
-          const res = await fetch(supportEndpoint, {
+          let supportEndpoint = `${API_BASE_URL}/api/courses/${url_title}/support/${matchedSupportPage}`;
+          let res = await fetch(supportEndpoint, {
             method: "GET",
             headers: {
               Accept: "application/json",
               Authorization: `Bearer ${token}`,
             },
           });
+          if (res.status === 404 && matchedSupportPage === "exam") {
+            const altRes = await fetch(`${API_BASE_URL}/api/courses/${url_title}/support/exam-format`, {
+              method: "GET",
+              headers: {
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            });
+            if (altRes.ok) {
+              res = altRes;
+            } else {
+              const directExamRes = await fetch(`${API_BASE_URL}/api/courses/${url_title}/exam`, {
+                method: "GET",
+                headers: {
+                  Accept: "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+              if (directExamRes.ok) {
+                res = directExamRes;
+              }
+            }
+          }
           if (!res.ok) {
-            setError(`Failed to fetch ${matchedSupportPage} data.`);
+            setError(
+              res.status === 404
+                ? `The ${matchedSupportPage} page is not published for this course.`
+                : `Failed to fetch ${matchedSupportPage} data.`
+            );
             setCourseData(null);
             return;
           }
@@ -2664,6 +2704,36 @@ function DynamicPage({ courseData: initialCourseData = null }) {
     );
   }
 
+  const courseHeadingData = courseData?.dynamicCourseHeading || courseData?.courseHeading || {};
+  const courseTitle = courseHeadingData?.meta_title || courseHeadingData?.heading || courseHeadingData?.title || (url_title ? url_title.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "Course Details");
+  const courseDescription = courseHeadingData?.metaDescription || courseHeadingData?.meta_description || courseHeadingData?.description || courseData?.courseDescription?.description || "";
+  const courseKeywords = courseHeadingData?.meta_keywords || null;
+
+  const firstSchedule = Array.isArray(courseData?.courseSchedule) && courseData.courseSchedule.length > 0 ? courseData.courseSchedule[0] : null;
+  const coursePricing = firstSchedule ? {
+    amount: firstSchedule?.discounted_price || firstSchedule?.fee_amount || 0,
+    currency: firstSchedule?.fee_currency || "INR"
+  } : null;
+
+  const courseSchema = useMemo(() => {
+    if (!courseData) return null;
+    return generateCourseSchema({
+      courseName: courseHeadingData?.heading || courseHeadingData?.title || courseTitle,
+      courseDescription: courseDescription,
+      courseUrl: router.asPath,
+      imageUrl: courseData?.courseHeading?.image ? `${API_BASE_URL}/${courseData.courseHeading.image}` : null,
+      breadcrumbs: [
+        { name: "Home", url: "/" },
+        { name: "All Courses", url: "/all-courses" },
+        { name: courseHeadingData?.heading || courseHeadingData?.title || courseTitle, url: `/${url_title || ""}` }
+      ],
+      faqs: courseData?.courseCurriculumFAQ || faq || [],
+      reviews: testimonialList || [],
+      ratings: courseData?.ratings?.[0] || null,
+      pricing: coursePricing,
+    });
+  }, [courseData, courseHeadingData, courseTitle, courseDescription, router.asPath, faq, testimonialList, coursePricing, url_title]);
+
   if (isQuestionsScreen) {
     return (
       <DedicatedQuizQuestionsPage
@@ -2732,35 +2802,6 @@ function DynamicPage({ courseData: initialCourseData = null }) {
     );
   }
 
-  const courseHeadingData = courseData?.dynamicCourseHeading || courseData?.courseHeading || {};
-  const courseTitle = courseHeadingData?.meta_title || courseHeadingData?.heading || courseHeadingData?.title || (url_title ? url_title.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "Course Details");
-  const courseDescription = courseHeadingData?.metaDescription || courseHeadingData?.meta_description || courseHeadingData?.description || courseData?.courseDescription?.description || "";
-  const courseKeywords = courseHeadingData?.meta_keywords || null;
-
-  const firstSchedule = Array.isArray(courseData?.courseSchedule) && courseData.courseSchedule.length > 0 ? courseData.courseSchedule[0] : null;
-  const coursePricing = firstSchedule ? {
-    amount: firstSchedule?.discounted_price || firstSchedule?.fee_amount || 0,
-    currency: firstSchedule?.fee_currency || "INR"
-  } : null;
-
-  const courseSchema = useMemo(() => {
-    if (!courseData) return null;
-    return generateCourseSchema({
-      courseName: courseHeadingData?.heading || courseHeadingData?.title || courseTitle,
-      courseDescription: courseDescription,
-      courseUrl: router.asPath,
-      imageUrl: courseData?.courseHeading?.image ? `${API_BASE_URL}/${courseData.courseHeading.image}` : null,
-      breadcrumbs: [
-        { name: "Home", url: "/" },
-        { name: "All Courses", url: "/all-courses" },
-        { name: courseHeadingData?.heading || courseHeadingData?.title || courseTitle, url: `/${url_title || ""}` }
-      ],
-      faqs: courseData?.courseCurriculumFAQ || faq || [],
-      reviews: testimonialList || [],
-      ratings: courseData?.ratings?.[0] || null,
-      pricing: coursePricing,
-    });
-  }, [courseData, courseHeadingData, courseTitle, courseDescription, router.asPath, faq, testimonialList, coursePricing, url_title]);
 
   return (
     <>
@@ -7424,9 +7465,14 @@ export async function getServerSideProps({ req, params }) {
     };
   }
 
+  const quizIdx = slug.findIndex(
+    (s) => ["quizzes", "quiz", "quizz"].includes(s?.toLowerCase())
+  );
+
   const SUPPORT_PAGE_SLUGS = [
     "syllabus",
     "notes",
+    "exam",
     "exam-format",
     "eligibility",
     "study-plan",
@@ -7438,15 +7484,13 @@ export async function getServerSideProps({ req, params }) {
   ];
 
   const matchedSupportPage =
-    slug.find((s) => SUPPORT_PAGE_SLUGS.includes(s?.toLowerCase()))?.toLowerCase() ||
-    null;
+    quizIdx === -1
+      ? slug.find((s) => SUPPORT_PAGE_SLUGS.includes(s?.toLowerCase()))?.toLowerCase() || null
+      : null;
   const isSyllabus = matchedSupportPage === "syllabus";
   const isNotes = matchedSupportPage === "notes";
   const isSupportPage = Boolean(matchedSupportPage);
 
-  const quizIdx = slug.findIndex(
-    (s) => s?.toLowerCase() === "quizzes" || s?.toLowerCase() === "quiz"
-  );
   const isQuestionsScreen =
     quizIdx !== -1 &&
     slug.length > quizIdx + 2 &&
@@ -7462,8 +7506,7 @@ export async function getServerSideProps({ req, params }) {
   const filteredSlug = slug.filter(
     (s, idx) =>
       !SUPPORT_PAGE_SLUGS.includes(s?.toLowerCase()) &&
-      s?.toLowerCase() !== "quizzes" &&
-      s?.toLowerCase() !== "quiz" &&
+      !["quizzes", "quiz", "quizz"].includes(s?.toLowerCase()) &&
       (!isQuizDetail && !isQuestionsScreen ? true : idx !== quizIdx + 1) &&
       (!isQuestionsScreen ? true : idx !== quizIdx + 2)
   );
@@ -7495,7 +7538,13 @@ export async function getServerSideProps({ req, params }) {
           },
         }
       );
+      if (res.status === 404 || !res.ok) {
+        return { notFound: true };
+      }
       const json = await res.json();
+      if (!json?.status || !json?.data || !json?.data?.questions || json.data.questions.length === 0) {
+        return { notFound: true };
+      }
       const quizTitle = json?.data?.quiz?.title || "Exam Simulator";
       const courseName = json?.data?.course?.name || url_title;
       return {
@@ -7510,17 +7559,7 @@ export async function getServerSideProps({ req, params }) {
         },
       };
     } catch (e) {
-      return {
-        props: {
-          title: "Exam Questions | ScholarAcad",
-          description: "Interactive exam simulator questions.",
-          keywords: null,
-          ogTitle: "Exam Questions | ScholarAcad",
-          ogDescription: "Interactive exam simulator questions.",
-          ogUrl: pageUrl,
-          courseData: null,
-        },
-      };
+      return { notFound: true };
     }
   }
 
@@ -7536,7 +7575,13 @@ export async function getServerSideProps({ req, params }) {
           },
         }
       );
+      if (res.status === 404 || !res.ok) {
+        return { notFound: true };
+      }
       const json = await res.json();
+      if (!json?.status || !json?.data || !json?.data?.quiz) {
+        return { notFound: true };
+      }
       const quizTitle = json?.data?.quiz?.title || "Quiz Details";
       const courseName = json?.data?.course?.name || url_title;
       return {
@@ -7555,17 +7600,7 @@ export async function getServerSideProps({ req, params }) {
         },
       };
     } catch (e) {
-      return {
-        props: {
-          title: "Quiz Details | ScholarAcad",
-          description: "Quiz details and exam instructions.",
-          keywords: null,
-          ogTitle: "Quiz Details | ScholarAcad",
-          ogDescription: "Quiz details and exam instructions.",
-          ogUrl: pageUrl,
-          courseData: null,
-        },
-      };
+      return { notFound: true };
     }
   }
 
@@ -7581,7 +7616,14 @@ export async function getServerSideProps({ req, params }) {
           },
         }
       );
+      // Agar backend ne 404 bheja (No permission / Not published):
+      if (res.status === 404 || !res.ok) {
+        return { notFound: true };
+      }
       const json = await res.json();
+      if (!json?.status || !json?.data || json.data.length === 0) {
+        return { notFound: true };
+      }
       const courseName =
         json?.course?.name ||
         url_title
@@ -7597,37 +7639,65 @@ export async function getServerSideProps({ req, params }) {
           ogTitle: `${courseName} Quizzes & Mock Exams | ScholarAcad`,
           ogDescription: `Practice interactive quizzes and realistic mock exams for ${courseName}.`,
           ogUrl: pageUrl,
-          courseData: json || null,
+          courseData: json,
         },
       };
     } catch (e) {
-      return {
-        props: {
-          title: "Course Quizzes | ScholarAcad",
-          description: "Interactive quizzes and mock exams.",
-          keywords: null,
-          ogTitle: "Course Quizzes | ScholarAcad",
-          ogDescription: "Interactive quizzes and mock exams.",
-          ogUrl: pageUrl,
-          courseData: null,
-        },
-      };
+      return { notFound: true };
     }
   }
 
   if (isSupportPage && !isNotes && url_title) {
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/courses/${url_title}/support/${matchedSupportPage}`,
-        {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+      let supportEndpoint = `${API_BASE_URL}/api/courses/${url_title}/support/${matchedSupportPage}`;
+      let res = await fetch(supportEndpoint, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      // If matchedSupportPage === 'exam' and /support/exam returned 404, check /support/exam-format and /exam
+      if (res.status === 404 && matchedSupportPage === "exam") {
+        const altRes = await fetch(
+          `${API_BASE_URL}/api/courses/${url_title}/support/exam-format`,
+          {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        if (altRes.ok) {
+          res = altRes;
+        } else {
+          const directExamRes = await fetch(
+            `${API_BASE_URL}/api/courses/${url_title}/exam`,
+            {
+              method: "GET",
+              headers: {
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          if (directExamRes.ok) {
+            res = directExamRes;
+          }
         }
-      );
+      }
+
+      if (res.status === 404 || !res.ok) {
+        return { notFound: true };
+      }
+
       const json = await res.json();
+      if (!json?.status || !json?.data) {
+        return { notFound: true };
+      }
+
       const seoData = json?.data?.seo || {};
       const supportPage = json?.data?.support_page || {};
       const course = json?.data?.course || {};
@@ -7636,9 +7706,12 @@ export async function getServerSideProps({ req, params }) {
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(" ");
       const metaTitle =
-        seoData?.title || supportPage?.title || `${course?.name || url_title} ${pageLabel} | ScholarAcad`;
+        seoData?.title ||
+        supportPage?.title ||
+        `${course?.name || url_title} ${pageLabel} | ScholarAcad`;
       const metaDescription =
-        seoData?.description || `Explore ${pageLabel.toLowerCase()} and details for ${course?.name || url_title}.`;
+        seoData?.description ||
+        `Explore ${pageLabel.toLowerCase()} and details for ${course?.name || url_title}.`;
 
       return {
         props: {
@@ -7652,21 +7725,7 @@ export async function getServerSideProps({ req, params }) {
         },
       };
     } catch (e) {
-      const pageLabel = matchedSupportPage
-        .split("-")
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(" ");
-      return {
-        props: {
-          title: `Course ${pageLabel} | ScholarAcad`,
-          description: `Explore course ${pageLabel.toLowerCase()} details.`,
-          keywords: null,
-          ogTitle: `Course ${pageLabel} | ScholarAcad`,
-          ogDescription: `Explore course ${pageLabel.toLowerCase()} details.`,
-          ogUrl: pageUrl,
-          courseData: null,
-        },
-      };
+      return { notFound: true };
     }
   }
 
