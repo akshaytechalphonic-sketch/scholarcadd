@@ -33,4 +33,14 @@ class CourseQuizQuestion extends Model
     {
         return $query->where('status', 'active');
     }
+
+    public function scopeForMode($query, $mode = null)
+    {
+        if ($mode === 'practice') {
+            return $query->whereIn('mode', ['both', 'practice']);
+        } elseif ($mode === 'exam') {
+            return $query->whereIn('mode', ['both', 'exam']);
+        }
+        return $query;
+    }
 }

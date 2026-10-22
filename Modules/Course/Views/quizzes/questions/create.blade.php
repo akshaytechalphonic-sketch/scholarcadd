@@ -15,7 +15,7 @@
 </div>
 
 <div class="text-xs w-full bg-white border rounded-md p-5 shadow-sm mt-3">
-    <form action="{{ route('course-quiz-question-store', ['quizId' => encrypt($quiz->id)]) }}" method="post">
+    <form action="{{ route('course-quiz-question-store', ['quizId' => encrypt($quiz->id)]) }}" method="post" enctype="multipart/form-data">
         @csrf
         @if ($data)
             <input type="hidden" name="question_id" value="{{ encrypt($data->id) }}">
@@ -46,7 +46,26 @@
                 placeholder="Enter the full exam question scenario or prompt here..." required>{{ old('question_text', $data?->question_text ?? '') }}</textarea>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <!-- Matching Question Visual / Image -->
+        <div class="mb-4 bg-gray-50 p-3 rounded border">
+            <label class="block text-xs font-semibold text-gray-800 mb-1 flex items-center gap-1">
+                <i class="ri-image-line text-sm text-primary"></i> Question / Matching Visual Image (Optional)
+            </label>
+            <div class="flex items-center gap-3">
+                <input type="file" name="question_image" id="question_image" accept="image/*" class="form-input text-xs p-1.5 border rounded bg-white w-full max-w-md">
+                @if(!empty($data?->image_url))
+                    <div class="flex items-center gap-2 bg-white border p-1 rounded">
+                        <img src="{{ asset($data->image_url) }}" alt="Preview" class="w-8 h-8 object-cover rounded border">
+                        <a href="{{ asset($data->image_url) }}" target="_blank" class="text-[11px] text-blue-600 underline font-medium">View current image</a>
+                    </div>
+                @endif
+            </div>
+            <span class="text-gray-500 text-[11px] mt-1 block">
+                💡 Diagram, workflow, or matching scenario visual embedded for this question (supports AI Matching sets).
+            </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
                 <label class="block text-xs font-semibold text-gray-700 mb-1">Order / Question Number</label>
                 <input type="number" name="order_no" class="form-input w-full text-xs p-2 border rounded"
@@ -56,6 +75,22 @@
                 <label class="block text-xs font-semibold text-gray-700 mb-1">Marks / Points</label>
                 <input type="number" name="marks" class="form-input w-full text-xs p-2 border rounded"
                     value="{{ old('marks', $data?->marks ?? 1) }}" min="1">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1">
+                    Show In (Mode) <span class="text-red-500 font-bold">*</span>
+                </label>
+                <select name="mode" class="form-select w-full text-xs p-2 border rounded font-medium">
+                    <option value="both" @selected(old('mode', $data?->mode ?? 'both') === 'both')>
+                        🌟 Both (Start Practice & Start Exam)
+                    </option>
+                    <option value="practice" @selected(old('mode', $data?->mode) === 'practice')>
+                        📝 Practice Mode Only (Learning/Hints)
+                    </option>
+                    <option value="exam" @selected(old('mode', $data?->mode) === 'exam')>
+                        🏆 Exam Mode Only (Timed Simulator)
+                    </option>
+                </select>
             </div>
         </div>
 
@@ -100,15 +135,17 @@
             </div>
         </div>
 
-        <!-- Explanation Section (Crucial for Scope 5.14 simulator) -->
-        <div class="mb-5">
-            <label class="block text-xs font-semibold text-gray-700 mb-1">
-                Detailed Answer Explanation (Practice Mode & Review)
+        <!-- Explanation Section -->
+        <div class="mb-5 bg-amber-50/70 border border-amber-200 rounded-md p-4">
+            <label class="block text-xs font-bold text-amber-900 mb-1 flex items-center gap-1.5">
+                <i class="ri-lightbulb-line text-sm text-amber-600"></i> Answer Explanation & Concept ("Why is this answer correct / incorrect?")
             </label>
-            <textarea name="explanation" rows="4" class="form-input w-full text-xs p-2.5 border rounded"
-                placeholder="Explain why the correct answer is right and why other options are incorrect. This is shown when a student clicks 'Check Answer' in Practice Mode or reviews completed exams.">{{ old('explanation', $data?->explanation ?? '') }}</textarea>
-            <p class="text-gray-400 text-xs mt-1">
-                Supports markdown or plain text explanations matching the Sabri C Enhanced Simulator format.
+            <textarea name="explanation" rows="5" class="form-input w-full text-xs p-2.5 border border-amber-300 rounded bg-white font-medium"
+                placeholder="Enter detailed explanation of why the correct option is right and incorrect options are wrong. Example:
+- Option B is correct because...
+- Option A is incorrect because...">{{ old('explanation', $data?->explanation ?? '') }}</textarea>
+            <p class="text-amber-800 text-xs mt-1.5 font-medium flex items-center gap-1">
+                <span>💡</span> <strong>How it appears on Frontend:</strong> When a user selects an answer during practice mode or views results, this explanation will automatically appear in the <strong>"Answer Explanation & Rationale"</strong> card.
             </p>
         </div>
 

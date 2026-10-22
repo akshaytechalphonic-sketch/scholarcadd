@@ -52,10 +52,14 @@ class CourseQuizAdminController extends Controller
                         return '<div><div class="font-semibold text-gray-800">' . e($row->title) . '</div><div class="text-xs text-gray-400">' . e($row->slug) . '</div></div>';
                     })
                     ->addColumn('type_badge', function ($row) {
-                        $isMock = ($row->type === 'mock_exam');
-                        $bg = $isMock ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-cyan-100 text-cyan-800 border-cyan-200';
-                        $label = $isMock ? 'Full Mock Exam' : 'Practice Quiz';
-                        return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ' . $bg . '">' . $label . '</span>';
+                        $types = [
+                            'mock_exam' => ['bg' => 'bg-purple-100 text-purple-800 border-purple-200', 'label' => 'Full Mock Exam'],
+                            'practice_quiz' => ['bg' => 'bg-cyan-100 text-cyan-800 border-cyan-200', 'label' => 'Practice Quiz'],
+                            'matching_set' => ['bg' => 'bg-blue-100 text-blue-800 border-blue-200', 'label' => 'AI Matching Set'],
+                            'case_study' => ['bg' => 'bg-emerald-100 text-emerald-800 border-emerald-200', 'label' => 'Case Study'],
+                        ];
+                        $conf = $types[$row->type] ?? ['bg' => 'bg-gray-100 text-gray-800 border-gray-200', 'label' => ucfirst(str_replace('_', ' ', $row->type))];
+                        return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ' . $conf['bg'] . '">' . $conf['label'] . '</span>';
                     })
                     ->addColumn('exam_details', function ($row) {
                         return '<div class="text-xs text-gray-600">⏱ <strong>' . $row->duration_minutes . '</strong> mins &nbsp;|&nbsp; 🎯 <strong>' . $row->passing_score . '%</strong> passing</div>';
@@ -76,9 +80,9 @@ class CourseQuizAdminController extends Controller
                         $encId = encrypt($row->id);
                         $editUrl = route('course-quiz-edit', ['id' => $encId]);
                         $courseSlug = $row->course?->url_title ?? '';
-                        $frontendBase = rtrim((string) (config('app.frontend_url') ?: env('FRONTEND_URL', '')), '/');
-                        if (empty($frontendBase) || str_contains($frontendBase, 'yourserver.com') || str_contains($frontendBase, 'localhost')) {
-                            $frontendBase = 'https://scolarcadfront-oxccis6xx-swati-0206.vercel.app';
+                        $frontendBase = rtrim((string) (config('app.frontend_url') ?: env('FRONTEND_URL', 'http://localhost:3000')), '/');
+                        if (empty($frontendBase) || str_contains($frontendBase, 'yourserver.com') || str_contains($frontendBase, 'vercel.app')) {
+                            $frontendBase = 'http://localhost:3000';
                         }
                         $previewUrl = $courseSlug ? $frontendBase . '/' . $courseSlug . '/quizzes' : '#';
 
@@ -164,7 +168,7 @@ class CourseQuizAdminController extends Controller
             'course_id' => 'required|exists:tbl_courses,id',
             'title' => 'required|string|max:255',
             'slug' => 'nullable|string|max:255|unique:tbl_course_quizzes,slug,' . ($id ?? 'NULL') . ',id',
-            'type' => 'required|string|in:mock_exam,practice_quiz',
+            'type' => 'required|string|in:mock_exam,practice_quiz,matching_set,case_study',
             'status' => 'required|string|in:published,draft,inactive',
             'duration_minutes' => 'nullable|integer|min:0',
             'passing_score' => 'nullable|integer|min:0|max:100',
@@ -324,22 +328,44 @@ class CourseQuizAdminController extends Controller
 
             $questionId = $request->filled('question_id') ? decrypt($request->input('question_id')) : null;
 
+            // Handle optional Matching Visual / Question Image upload
+            $imageUrl = null;
+            if ($questionId) {
+                $existingQ = CourseQuizQuestion::find($questionId);
+                $imageUrl = $existingQ?->image_url;
+            }
+
+            if ($request->hasFile('question_image')) {
+                $file = $request->file('question_image');
+                $uploadDir = public_path('uploads/quiz-questions');
+                if (!file_exists($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+                $filename = 'quiz_q_' . time() . '_' . Str::random(8) . '.' . $file->getClientOriginalExtension();
+                $file->move($uploadDir, $filename);
+                $imageUrl = 'uploads/quiz-questions/' . $filename;
+            }
+
             if ($questionId) {
                 $question = CourseQuizQuestion::findOrFail($questionId);
                 $question->update([
                     'question_text' => $request->question_text,
+                    'image_url' => $imageUrl,
                     'order_no' => $request->input('order_no', 1),
                     'marks' => $request->input('marks', 1),
                     'explanation' => $request->explanation,
+                    'mode' => $request->input('mode', 'both'),
                 ]);
             } else {
                 $question = CourseQuizQuestion::create([
                     'quiz_id' => $quiz->id,
                     'question_text' => $request->question_text,
+                    'image_url' => $imageUrl,
                     'type' => 'single_choice',
                     'order_no' => $request->input('order_no', 1),
                     'marks' => $request->input('marks', 1),
                     'explanation' => $request->explanation,
+                    'mode' => $request->input('mode', 'both'),
                     'status' => 'active',
                 ]);
             }

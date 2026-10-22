@@ -27,8 +27,16 @@
         <span class="font-semibold text-gray-700">Filter by Type:</span>
         <select id="filter-type" class="form-select text-xs border-gray-300 rounded p-1">
             <option value="">All Types</option>
-            <option value="exam-format">Exam Format</option>
             <option value="syllabus">Syllabus</option>
+            <option value="exam-format">Exam Format</option>
+            <option value="case-study">Case Study</option>
+            <option value="eligibility">Eligibility</option>
+            <option value="study-plan">Study Plan</option>
+            <option value="corporate-training">Corporate Training</option>
+            <option value="practice-test">Practice Test</option>
+            <option value="faqs">FAQs</option>
+            <option value="certification-benefits">Certification Benefits</option>
+            <option value="certification-guide">Certification Guide</option>
             <option value="notes">Study Notes</option>
         </select>
 

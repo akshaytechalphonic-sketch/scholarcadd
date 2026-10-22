@@ -84,9 +84,10 @@ class ApiController extends Controller
     {
         try {
             $user = Auth::user();
+            $companyId = $user ? $user->company_id : 1;
 
             // Get blog types for the company
-            $blogTypes = masterParentData('Knowledge Center Category', $user->company_id);
+            $blogTypes = masterParentData('Knowledge Center Category', $companyId);
 
             if (empty($blogTypes)) {
                 return response()->json([

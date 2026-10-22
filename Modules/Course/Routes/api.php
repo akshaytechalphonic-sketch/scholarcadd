@@ -72,6 +72,12 @@ Route::group(['middleware' => 'api', 'prefix' => 'quizzes'], function () {
     Route::get('attempts/{attemptId}/result', [QuizAttemptController::class, 'result']);
 });
 
+Route::group(['middleware' => 'api', 'prefix' => 'resource'], function () {
+    Route::match(['get', 'post'], 'quizzes', [QuizController::class, 'allQuizzes']);
+    Route::match(['get', 'post'], 'support-pages', [CourseSupportPageController::class, 'allSupportPages']);
+});
+
+
 
 
 

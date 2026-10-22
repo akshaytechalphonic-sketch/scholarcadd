@@ -110,6 +110,8 @@ class QuizController extends Controller
                     'description' => $quiz->description,
                     'total_questions' => $quiz->total_questions,
                     'duration_minutes' => $quiz->duration_minutes,
+                    'description' => $quiz->description,
+                    'description' => $quiz->description,
                     'passing_score' => $quiz->passing_score,
                     'status' => $quiz->status,
                 ],
@@ -151,10 +153,12 @@ class QuizController extends Controller
                 return $this->errorResponse('Quiz not found for this course', 404);
             }
 
-            $isPractice = ($request->query('mode') === 'practice' || $quiz->type === 'practice_quiz');
+            $mode = $request->query('mode');
+            $isPractice = ($mode === 'practice' || $quiz->type === 'practice_quiz');
 
             $questions = CourseQuizQuestion::where('quiz_id', $quiz->id)
                 ->active()
+                ->forMode($mode)
                 ->with(['options' => function ($query) {
                     $query->orderBy('order_no', 'asc');
                 }])
@@ -171,9 +175,10 @@ class QuizController extends Controller
                     'type' => $q->type ?? 'single_choice',
                     'image_url' => $q->image_url ? (str_starts_with($q->image_url, 'http') ? $q->image_url : asset($q->image_url)) : null,
                     'marks' => $q->marks ?? 1,
-                    'explanation' => $isPractice ? $q->explanation : null,
-                    'correct_option_id' => $isPractice ? $correctOpt?->id : null,
-                    'correct_option_label' => $isPractice ? $correctOpt?->option_label : null,
+                    'case_study' => $q->case_study ?? null,
+                    'explanation' => $q->explanation,
+                    'correct_option_id' => $correctOpt?->id,
+                    'correct_option_label' => $correctOpt?->option_label,
                     'options' => $q->options->map(function ($opt) use ($isPractice) {
                         $optItem = [
                             'id' => $opt->id,
@@ -181,9 +186,7 @@ class QuizController extends Controller
                             'option_text' => $opt->option_text,
                             'image_url' => $opt->image_url ? (str_starts_with($opt->image_url, 'http') ? $opt->image_url : asset($opt->image_url)) : null,
                         ];
-                        if ($isPractice) {
-                            $optItem['is_correct'] = (bool) $opt->is_correct;
-                        }
+                        $optItem['is_correct'] = (bool) $opt->is_correct;
                         return $optItem;
                     })->values(),
                 ];
@@ -204,6 +207,7 @@ class QuizController extends Controller
                     'type' => $quiz->type,
                     'total_questions' => $formattedQuestions->count(),
                     'duration_minutes' => $quiz->duration_minutes,
+                    'description' => $quiz->description,
                 ],
                 'questions' => $formattedQuestions,
             ];
@@ -218,4 +222,82 @@ class QuizController extends Controller
             return $this->errorResponse('An unexpected error occurred', 500);
         }
     }
+
+    /**
+     * GET/POST /api/resource/quizzes
+     * List all published quizzes across all courses, optionally filtered by course_category_id
+     */
+    public function allQuizzes(Request $request)
+    {
+        try {
+            $categoryId = $request->input('course_category_id') ?: $request->input('category_id');
+            $search = $request->input('search') ?: $request->input('filter');
+            $perPage = (int) $request->input('per_page', 9);
+
+            $query = CourseQuiz::published()
+                ->whereHas('course', function ($q) use ($categoryId) {
+                    $q->where('status', 'Active')->whereNull('deleted_at');
+                    if (!empty($categoryId) && $categoryId != 0) {
+                        $q->where(function ($sub) use ($categoryId) {
+                            $sub->where('course_category_id', $categoryId)
+                                ->orWhereHas('course_category', function ($cCat) use ($categoryId) {
+                                    $cCat->where('main_category_id', $categoryId);
+                                });
+                        });
+                    }
+                })
+                ->with(['course' => function ($q) {
+                    $q->select('id', 'course_title', 'url_title', 'course_category_id')
+                        ->with(['course_category:id,category_name,main_category_id']);
+                }]);
+
+            if (!empty($search)) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+                });
+            }
+
+            $quizzes = $query->orderBy('id', 'desc')->paginate($perPage);
+
+            $formatted = collect($quizzes->items())->map(function ($quiz) {
+                return [
+                    'id' => $quiz->id,
+                    'title' => $quiz->title,
+                    'slug' => $quiz->slug,
+                    'type' => $quiz->type,
+                    'description' => $quiz->description,
+                    'total_questions' => $quiz->total_questions,
+                    'duration_minutes' => $quiz->duration_minutes,
+                    'passing_score' => $quiz->passing_score,
+                    'course_id' => $quiz->course_id,
+                    'course_title' => $quiz->course?->course_title,
+                    'course_slug' => $quiz->course?->url_title,
+                    'category_id' => $quiz->course?->course_category_id,
+                    'category_name' => $quiz->course?->course_category?->category_name,
+                    'parent_category_id' => $quiz->course?->course_category?->main_category_id,
+                    'quiz_url' => "/course-quizzes/{$quiz->course?->url_title}/{$quiz->slug}",
+                    'created_at' => $quiz->created_at,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $formatted,
+                'pagination' => [
+                    'current_page' => $quizzes->currentPage(),
+                    'per_page' => $quizzes->perPage(),
+                    'total' => $quizzes->total(),
+                    'last_page' => $quizzes->lastPage(),
+                ],
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch quizzes',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }
+

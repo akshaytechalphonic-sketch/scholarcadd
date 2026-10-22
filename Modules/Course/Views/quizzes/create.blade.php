@@ -59,6 +59,12 @@
                     <option value="practice_quiz" @selected(old('type', $data?->type) === 'practice_quiz')>
                         📝 Practice Quiz (Quick Revision)
                     </option>
+                    <option value="matching_set" @selected(old('type', $data?->type) === 'matching_set')>
+                        🤖 AI Matching Set (Matching Question Simulator)
+                    </option>
+                    <option value="case_study" @selected(old('type', $data?->type) === 'case_study')>
+                        💼 Case Study Simulator (Scenario Based)
+                    </option>
                 </select>
             </div>
 

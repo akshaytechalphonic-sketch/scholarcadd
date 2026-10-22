@@ -88,7 +88,7 @@ class QuizAttemptController extends Controller
 
             // If no active attempt, create a new one
             if (!$attempt) {
-                $totalQuestions = CourseQuizQuestion::where('quiz_id', $quiz->id)->active()->count();
+                $totalQuestions = CourseQuizQuestion::where('quiz_id', $quiz->id)->active()->forMode($mode)->count();
 
                 $attempt = CourseQuizAttempt::create([
                     'quiz_id' => $quiz->id,

@@ -55,7 +55,14 @@ class ApiMiddleware
             $request->is('api/maintenance-check') ||
             $request->is('api/fetch-features') ||
             $request->is('api/ccavenue/callback') ||
-            $request->is('api/courses/*')
+            $request->is('api/courses/*') ||
+            $request->is('api/list/*') ||
+            $request->is('api/resource/*') ||
+            $request->is('resource/*') ||
+            $request->is('api/all-courses') ||
+            $request->is('api/categorised-course-list') ||
+            $request->is('api/testimonials/*') ||
+            $request->is('api/faq/*')
         ) {
             return $next($request);
         }
