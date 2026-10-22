@@ -204,21 +204,19 @@ export default function LandingPage() {
                         key={item.id}
                         onClick={() => setActiveIndex(index)}
                         className={`relative border-b py-4 cursor-pointer transition
-                                  ${
-                                    activeIndex === index
-                                      ? "bg-[#E4D3FF]"
-                                      : "hover:bg-gray-50"
-                                  }
+                                  ${activeIndex === index
+                            ? "bg-[#E4D3FF]"
+                            : "hover:bg-gray-50"
+                          }
                                 `}
                       >
                         <span
                           className={`absolute -left-5 top-0 my-4 w-8 h-8 flex items-center justify-center 
                                 text-white font-bold rounded
-                                ${
-                                  activeIndex === index
-                                    ? "bg-[#882CFB]"
-                                    : "bg-gray-400"
-                                }
+                                ${activeIndex === index
+                              ? "bg-[#882CFB]"
+                              : "bg-gray-400"
+                            }
                               `}
                         >
                           {String(index + 1).padStart(2, "0")}
@@ -226,11 +224,10 @@ export default function LandingPage() {
 
                         <span
                           className={`font-bold text-lg ml-10
-                                    ${
-                                      activeIndex === index
-                                        ? "text-[#2E318D]"
-                                        : "text-gray-600"
-                                    }
+                                    ${activeIndex === index
+                              ? "text-[#2E318D]"
+                              : "text-gray-600"
+                            }
                                   `}
                         >
                           {item.title}
@@ -245,10 +242,9 @@ export default function LandingPage() {
                 <div className="w-[250px] h-[250px] rounded-full bg-white flex justify-center items-center shadow">
                   <ActiveIcon
                     className={`w-[100px] h-[100px] transition animate-pulse
-                      ${
-                        activeIndex !== null
-                          ? "text-[#882CFB]"
-                          : "text-gray-400"
+                      ${activeIndex !== null
+                        ? "text-[#882CFB]"
+                        : "text-gray-400"
                       }
                     `}
                   />
@@ -278,3 +274,5 @@ export default function LandingPage() {
     </>
   );
 }
+
+
