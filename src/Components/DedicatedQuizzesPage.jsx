@@ -255,11 +255,11 @@ export default function DedicatedQuizzesPage({
         <Navbar />
         <main className="min-h-[70vh] bg-[#f8fafc] flex items-center justify-center px-4 py-16">
           <div className="max-w-md w-full bg-white rounded-3xl p-8 sm:p-10 text-center shadow-sm border border-slate-200/80 space-y-6">
-            <div className="w-20 h-20 bg-purple-50 text-[#6520b8] rounded-2xl flex items-center justify-center mx-auto text-4xl shadow-inner">
+            <div className="w-20 h-20 bg-purple-50 text-[#882CFB] rounded-2xl flex items-center justify-center mx-auto text-4xl shadow-inner">
               <MdQuiz />
             </div>
             <div className="space-y-2">
-              <span className="text-xs font-black tracking-widest text-purple-600 uppercase bg-purple-100/60 px-3.5 py-1 rounded-full">
+              <span className="text-xs font-black tracking-widest text-[#882CFB] uppercase bg-purple-100/60 px-3.5 py-1 rounded-full">
                 404 Not Found
               </span>
               <h1 className="text-2xl font-black text-slate-900 tracking-tight">
@@ -273,7 +273,7 @@ export default function DedicatedQuizzesPage({
             <div className="pt-2 flex flex-col sm:flex-row gap-3">
               <Link
                 href={targetCourseSlug ? `/${targetCourseSlug}` : "/all-courses"}
-                className="flex-1 py-3 px-4 rounded-xl text-xs font-bold bg-[#6520b8] hover:bg-[#53169c] text-white shadow-md transition"
+                className="flex-1 py-3 px-4 rounded-xl text-xs font-bold bg-[#882CFB] hover:bg-[#701cdb] text-white shadow-md transition"
               >
                 View Course Overview
               </Link>
@@ -308,65 +308,64 @@ export default function DedicatedQuizzesPage({
       <Navbar />
 
       <main className="min-h-screen bg-[#f3f4f8]">
-        {/* Top Header Banner matching the Exact Blue-Purple Vibrant Gradient UI */}
-        <header className="relative bg-gradient-to-r from-[#491689] via-[#6520b8] to-[#7f26d9] text-white pt-10 pb-12 px-4 sm:px-6 lg:px-8 text-center shadow-md">
+        {/* Top Header Banner matching ScholarAcad Clean Light Pattern */}
+        <header className="bg-white border-b border-gray-200 py-8 sm:py-10 px-4 sm:px-6 lg:px-8 text-center shadow-xs">
           <div className="max-w-6xl mx-auto space-y-4">
             {/* Breadcrumb */}
-            <nav className="flex items-center justify-center flex-wrap gap-2 text-xs text-purple-200 mb-2">
+            <nav className="flex items-center justify-center flex-wrap gap-2 text-xs text-gray-500 mb-2">
               <Link
                 href="/"
-                className="hover:text-white flex items-center gap-1.5 transition-colors"
+                className="hover:text-[#882CFB] flex items-center gap-1.5 transition-colors"
               >
-                <IoHomeOutline className="text-sm" />
+                <IoHomeOutline className="text-sm text-[#2E318D]" />
                 <span>Home</span>
               </Link>
-              <IoIosArrowForward className="text-purple-300 text-xs" />
+              <IoIosArrowForward className="text-gray-400 text-xs" />
               <Link
                 href="/all-courses"
-                className="hover:text-white transition-colors"
+                className="hover:text-[#882CFB] transition-colors"
               >
                 Courses
               </Link>
-              <IoIosArrowForward className="text-purple-300 text-xs" />
+              <IoIosArrowForward className="text-gray-400 text-xs" />
               <Link
                 href={`/${targetCourseSlug}`}
-                className="hover:text-white line-clamp-1 max-w-[200px] sm:max-w-none transition-colors"
+                className="hover:text-[#882CFB] line-clamp-1 max-w-[200px] sm:max-w-none transition-colors"
               >
                 {courseDisplayName}
               </Link>
-              <IoIosArrowForward className="text-purple-300 text-xs" />
-              <span className="text-amber-300 font-semibold">Exam Simulator</span>
+              <IoIosArrowForward className="text-gray-400 text-xs" />
+              <span className="text-[#882CFB] font-semibold">Exam Simulator</span>
             </nav>
 
-            {/* Title with Rocket Icon */}
-            <div className="flex items-center justify-center gap-3">
-              <span className="text-2xl sm:text-3xl">🚀</span>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-white">
-                {courseDisplayName} — Enhanced Exam Simulator
+            {/* Title with Simulator Icon */}
+            <div className="flex items-center justify-center gap-2">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900">
+                {courseDisplayName} — Exam Simulator
               </h1>
             </div>
 
             {/* Subtitle description */}
-            <p className="text-xs sm:text-sm text-purple-100/90 max-w-3xl mx-auto leading-relaxed">
-              Standalone offline/online practice/exam simulator generated from the official question bank. Practice mode shows explanations immediately, while Exam mode hides answers until final submission.
+            <p className="text-xs sm:text-sm text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              Standalone practice and exam simulator generated from the official question bank. Practice mode shows explanations immediately, while Exam mode simulates real exam timing and scoring.
             </p>
 
-            {/* Feature Capsule Badges (Matches screenshot pill buttons) */}
-            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 pt-3">
-              <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/15 border border-white/25 text-white backdrop-blur-sm transition">
+            {/* Feature Capsule Badges */}
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 pt-2">
+              <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-purple-50 text-[#882CFB] border border-purple-200 transition">
                 Practice Mode
               </span>
-              <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/15 border border-white/25 text-white backdrop-blur-sm transition">
+              <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-purple-50 text-[#882CFB] border border-purple-200 transition">
                 Exam Mode with Timer
               </span>
-              <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/15 border border-white/25 text-white backdrop-blur-sm transition">
+              <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-purple-50 text-[#882CFB] border border-purple-200 transition">
                 Review Wrong / Flagged / Unanswered
               </span>
-              <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/15 border border-white/25 text-white backdrop-blur-sm transition">
+              <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-purple-50 text-[#882CFB] border border-purple-200 transition">
                 Highlight + Strike Through
               </span>
-              <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/15 border border-white/25 text-white backdrop-blur-sm transition">
-                Source Images Embedded
+              <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-purple-50 text-[#882CFB] border border-purple-200 transition">
+                Source Explanations Embedded
               </span>
             </div>
           </div>
@@ -405,7 +404,7 @@ export default function DedicatedQuizzesPage({
                       ? `/${active_country || "in"}/${targetCourseSlug}/quizzes/${primaryPracticeQuiz.slug || primaryPracticeQuiz.id}`
                       : `/${active_country || "in"}/${targetCourseSlug}/quizzes`
                   }
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-[#491689] hover:bg-[#390f6e] text-white text-center shadow-sm transition block cursor-pointer"
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-[#2E318D] hover:bg-[#1f236a] text-white text-center shadow-sm transition block cursor-pointer"
                 >
                   Start Practice
                 </Link>
@@ -414,8 +413,8 @@ export default function DedicatedQuizzesPage({
               {/* Box 2: Exam Mode with Timer */}
               <div className="bg-slate-50/70 hover:bg-slate-50 border border-slate-200/80 rounded-2xl p-5 flex flex-col justify-between space-y-4 transition">
                 <div className="space-y-2.5">
-                  <div className="flex items-center gap-2 text-indigo-700 font-bold text-sm">
-                    <MdTimer className="text-base text-indigo-600" />
+                  <div className="flex items-center gap-2 text-[#882CFB] font-bold text-sm">
+                    <MdTimer className="text-base text-[#882CFB]" />
                     <span>Exam Mode</span>
                   </div>
                   <p className="text-xs text-slate-500 leading-relaxed">
@@ -435,7 +434,7 @@ export default function DedicatedQuizzesPage({
                       ? `/${active_country || "in"}/${targetCourseSlug}/quizzes/${primaryMockQuiz.slug || primaryMockQuiz.id}`
                       : `/${active_country || "in"}/${targetCourseSlug}/quizzes`
                   }
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-[#6520b8] hover:bg-[#53169c] text-white text-center shadow-sm transition block cursor-pointer"
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-[#882CFB] hover:bg-[#701cdb] text-white text-center shadow-sm transition block cursor-pointer"
                 >
                   Start Exam
                 </Link>
@@ -444,8 +443,8 @@ export default function DedicatedQuizzesPage({
               {/* Box 3: Resume Saved Attempt */}
               <div className="bg-slate-50/70 hover:bg-slate-50 border border-slate-200/80 rounded-2xl p-5 flex flex-col justify-between space-y-4 transition">
                 <div className="space-y-2.5">
-                  <div className="flex items-center gap-2 text-purple-700 font-bold text-sm">
-                    <FaSave className="text-sm text-purple-600" />
+                  <div className="flex items-center gap-2 text-[#882CFB] font-bold text-sm">
+                    <FaSave className="text-sm text-[#882CFB]" />
                     <span>Resume</span>
                   </div>
                   <p className="text-xs text-slate-500 leading-relaxed">
@@ -481,7 +480,7 @@ export default function DedicatedQuizzesPage({
             <div className="border-t border-slate-100 pt-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <MdOutlineLayers className="text-[#6520b8]" />
+                  <MdOutlineLayers className="text-[#882CFB]" />
                   <span>Available Question Bank Sets ({quizzes.length})</span>
                 </h3>
 
@@ -491,7 +490,7 @@ export default function DedicatedQuizzesPage({
                     onClick={() => setSelectedFilter("all")}
                     className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                       selectedFilter === "all"
-                        ? "bg-[#6520b8] text-white"
+                        ? "bg-[#882CFB] text-white"
                         : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                     }`}
                   >
@@ -501,7 +500,7 @@ export default function DedicatedQuizzesPage({
                     onClick={() => setSelectedFilter("mock")}
                     className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                       selectedFilter === "mock"
-                        ? "bg-[#6520b8] text-white"
+                        ? "bg-[#882CFB] text-white"
                         : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                     }`}
                   >
@@ -511,7 +510,7 @@ export default function DedicatedQuizzesPage({
                     onClick={() => setSelectedFilter("practice")}
                     className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                       selectedFilter === "practice"
-                        ? "bg-[#6520b8] text-white"
+                        ? "bg-[#882CFB] text-white"
                         : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                     }`}
                   >
@@ -550,20 +549,20 @@ export default function DedicatedQuizzesPage({
                     return (
                       <div
                         key={quiz?.id || quiz?.slug || index}
-                        className="bg-white border border-slate-200/90 hover:border-purple-300 rounded-2xl p-4 sm:p-5 flex flex-col justify-between hover:shadow-md transition-all duration-300 group"
+                        className="bg-white border border-slate-200/90 hover:border-[#882CFB]/40 rounded-2xl p-4 sm:p-5 flex flex-col justify-between hover:shadow-md transition-all duration-300 group"
                       >
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-2.5">
                             <span
                               className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                                 isMock
-                                  ? "bg-purple-50 text-purple-700 border border-purple-200"
+                                  ? "bg-[#F4EFFF] text-[#882CFB] border border-[#E4D3FF]"
                                   : "bg-emerald-50 text-emerald-700 border border-emerald-200"
                               }`}
                             >
                               <span
                                 className={`w-1.5 h-1.5 rounded-full ${
-                                  isMock ? "bg-purple-600 animate-pulse" : "bg-emerald-600"
+                                  isMock ? "bg-[#882CFB] animate-pulse" : "bg-emerald-600"
                                 }`}
                               ></span>
                               {isMock ? "Mock Exam" : "Practice Quiz"}
@@ -574,7 +573,7 @@ export default function DedicatedQuizzesPage({
                             </span>
                           </div>
 
-                          <h4 className="text-sm font-bold text-slate-900 group-hover:text-[#6520b8] transition-colors line-clamp-1 mb-1.5">
+                          <h4 className="text-sm font-bold text-slate-900 group-hover:text-[#882CFB] transition-colors line-clamp-1 mb-1.5">
                             {quiz?.title || "Exam Set"}
                           </h4>
 
@@ -608,8 +607,8 @@ export default function DedicatedQuizzesPage({
                             href={`/${targetCourseSlug}/quizzes/${quiz?.slug || quiz?.id}`}
                             className={`w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                               isMock
-                                ? "bg-[#6520b8] hover:bg-[#53169c] text-white shadow-sm"
-                                : "bg-[#491689] hover:bg-[#390f6e] text-white shadow-sm"
+                                ? "bg-[#882CFB] hover:bg-[#701cdb] text-white shadow-sm"
+                                : "bg-[#2E318D] hover:bg-[#1f236a] text-white shadow-sm"
                             }`}
                           >
                             <FaPlay className="text-[9px]" />
@@ -634,7 +633,7 @@ export default function DedicatedQuizzesPage({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               {/* Stat 1: Total Items */}
               <div className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-5">
-                <div className="text-2xl sm:text-3xl font-extrabold text-[#491689] mb-1">
+                <div className="text-2xl sm:text-3xl font-extrabold text-[#2E318D] mb-1">
                   {loading ? "..." : totalQuestionsSum}
                 </div>
                 <div className="text-xs font-bold text-slate-800 mb-1">
@@ -647,7 +646,7 @@ export default function DedicatedQuizzesPage({
 
               {/* Stat 2: 1x1 Display */}
               <div className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-5">
-                <div className="text-2xl sm:text-3xl font-extrabold text-[#491689] mb-1">
+                <div className="text-2xl sm:text-3xl font-extrabold text-[#2E318D] mb-1">
                   1×1
                 </div>
                 <div className="text-xs font-bold text-slate-800 mb-1">
@@ -660,7 +659,7 @@ export default function DedicatedQuizzesPage({
 
               {/* Stat 3: CSV Export */}
               <div className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-5">
-                <div className="text-2xl sm:text-3xl font-extrabold text-[#491689] mb-1">
+                <div className="text-2xl sm:text-3xl font-extrabold text-[#2E318D] mb-1">
                   CSV
                 </div>
                 <div className="text-xs font-bold text-slate-800 mb-1">
@@ -673,7 +672,7 @@ export default function DedicatedQuizzesPage({
 
               {/* Stat 4: Offline / Standalone */}
               <div className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-5">
-                <div className="text-2xl sm:text-3xl font-extrabold text-[#491689] mb-1">
+                <div className="text-2xl sm:text-3xl font-extrabold text-[#2E318D] mb-1">
                   Offline
                 </div>
                 <div className="text-xs font-bold text-slate-800 mb-1">

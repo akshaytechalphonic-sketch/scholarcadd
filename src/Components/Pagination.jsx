@@ -25,25 +25,25 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
       <button
         onClick={() => handlePageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="px-3 py-1 border border-gray-400 rounded disabled:opacity-50 cursor-pointer hover:bg-[#882CFB]
-        hover:text-white"
+        className="px-3 py-1.5 border border-slate-300 rounded-md text-xs font-semibold text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#882CFB] hover:text-white hover:border-[#882CFB] transition cursor-pointer"
       >
         Prev
       </button>
 
       {pages.map((page, idx) =>
         page === "..." ? (
-          <span key={idx} className="px-2 py-1">
+          <span key={idx} className="px-2 py-1 text-slate-400 font-bold text-xs">
             ...
           </span>
         ) : (
           <button
             key={idx}
             onClick={() => handlePageChange(page)}
-            className={`px-3 py-1 border border-gray-400 rounded cursor-pointer hover:bg-[#882CFB]
-        hover:text-white ${
-          page === currentPage ? "bg-[#B9A8FF] text-white" : ""
-        }`}
+            className={`px-3 py-1.5 border rounded-md text-xs font-bold transition cursor-pointer ${
+              page === currentPage
+                ? "bg-[#B9A8FF] text-white border-[#B9A8FF] shadow-sm"
+                : "bg-white text-slate-700 border-slate-300 hover:bg-[#882CFB] hover:text-white hover:border-[#882CFB]"
+            }`}
           >
             {page}
           </button>
@@ -53,8 +53,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
       <button
         onClick={() => handlePageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="px-3 py-1 border border-gray-400 rounded disabled:opacity-50 cursor-pointer hover:bg-[#882CFB]
-        hover:text-white"
+        className="px-3 py-1.5 border border-slate-300 rounded-md text-xs font-semibold text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#882CFB] hover:text-white hover:border-[#882CFB] transition cursor-pointer"
       >
         Next
       </button>

@@ -29,6 +29,7 @@ import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { RiGraduationCapFill } from "react-icons/ri";
 import { API_BASE_URL, APIENDPOINTS } from "../../apiconfig";
+import { getCourseImageUrl } from "@/utils/imageHelper";
 import { DynamicSEO, getCleanCanonicalUrl, generateCourseListingSchema } from "@/lib/seoHelper";
 
 function Course() {
@@ -508,7 +509,7 @@ function Course() {
                       <div className="relative overflow-hidden rounded-xl bg-slate-50 border border-gray-100 flex items-center justify-center h-48 group-hover:bg-purple-50/40 transition-colors">
                         {course?.header_image ? (
                           <img
-                            src={`${API_BASE_URL}/master/secure-documents?path=${course?.header_image}` || ""}
+                            src={getCourseImageUrl(course?.header_image)}
                             alt={course?.course_title}
                             onError={(e) => {
                               e.currentTarget.src = "/assets/landingpage/aboutus_bg.jpg";

@@ -33,13 +33,11 @@ const nunito = Nunito({
   subsets: ["latin"],
   weight: ["400", "700"],
 });
-function BlogDetails() {
+function BlogDetails({ initialBlog }) {
   const { token } = useAuth();
   const router = useRouter();
-  const [blog, setBlog] = useState(null);
-  const [loading, setLoading] = useState(true);
-  // const { id } = router.query;
-  // console.log("id",id);
+  const [blog, setBlog] = useState(initialBlog || null);
+  const [loading, setLoading] = useState(!initialBlog);
   const [realId, setRealId] = useState(null);
   const [sanitizedHtml, setSanitizedHtml] = useState("");
   const [Recentblogs, setRecentBlogs] = useState([]);
@@ -53,15 +51,17 @@ function BlogDetails() {
       .replace(/--+/g, "-");
   };
 
-  // Decode id when router query changes
-  // useEffect(() => {
-  //   if (id) {
-  //     const decodedId = decryptId(id);
-  //     setRealId(decodedId);
-  //   }
-  // }, [id]);
-  const [expanded, setExpanded] = useState(false);
+  const getImageSrc = (img) => {
+    if (!img) return "/assets/landingpage/blog1_image.png";
+    const clean = String(img).trim();
+    if (clean.startsWith("http://") || clean.startsWith("https://")) return clean;
+    if (clean.startsWith("/assets/") || clean.startsWith("assets/")) {
+      return clean.startsWith("/") ? clean : "/" + clean;
+    }
+    return API_BASE_URL + "/master/secure-documents?path=" + encodeURIComponent(clean);
+  };
 
+  const [expanded, setExpanded] = useState(false);
   const [blogTitle, setBlogTitle] = useState("");
   const [blogId, setBlogId] = useState("");
 
@@ -70,33 +70,88 @@ function BlogDetails() {
     const { title, id } = router.query;
     setBlogTitle(title);
     setBlogId(id);
-  }, [router.asPath]);
+  }, [router.asPath, router.isReady]);
 
-  //  Fetch blog when token and realId are ready
+  // Fetch blog when token and blogTitle are ready
   useEffect(() => {
-    if (!blogTitle || !token) return;
+    if (!blogTitle) return;
+
+    if (
+      initialBlog &&
+      (initialBlog.url_title === blogTitle ||
+        slugify(initialBlog.resource_title) === blogTitle ||
+        String(initialBlog.id) === blogTitle)
+    ) {
+      setBlog(initialBlog);
+      setLoading(false);
+      return;
+    }
+
     const fetchBlog = async () => {
       setLoading(true);
       try {
+        const headers = {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        };
+
+        // 1. Try direct fetch with blogTitle
         const res = await fetch(`${API_BASE_URL}${APIENDPOINTS.BLOG_DETAIL}`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON?.stringify({ blog_id: blogTitle }),
+          headers,
+          body: JSON.stringify({ blog_id: blogTitle }),
         });
 
-        if (!res.ok) {
-          console?.log("HTTP error! Status:", res?.status);
-          setBlog(null);
-          return;
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.data) {
+            setBlog(data.data);
+            setLoading(false);
+            return;
+          }
         }
-        const data = await res?.json();
-        setBlog(data?.data || null);
+
+        // 2. Fallback: Search blog list if direct url_title didn't match
+        const listRes = await fetch(`${API_BASE_URL}${APIENDPOINTS.BLOG_LIST}`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ blog_type_id: 241, per_page: 100 }),
+        });
+
+        if (listRes.ok) {
+          const listData = await listRes.json();
+          const blogsList = listData?.data || [];
+          const matched = blogsList.find((b) => {
+            const cleanUrlTitle = (b.url_title || "").toLowerCase();
+            const cleanQuery = blogTitle.toLowerCase();
+            const cleanSlug = slugify(b.resource_title || "");
+            return cleanUrlTitle === cleanQuery || cleanSlug === cleanQuery || String(b.id) === cleanQuery;
+          });
+
+          if (matched && matched.url_title) {
+            const detailRes = await fetch(`${API_BASE_URL}${APIENDPOINTS.BLOG_DETAIL}`, {
+              method: "POST",
+              headers,
+              body: JSON.stringify({ blog_id: matched.url_title }),
+            });
+            if (detailRes.ok) {
+              const detailData = await detailRes.json();
+              if (detailData?.data) {
+                setBlog(detailData.data);
+                setLoading(false);
+                return;
+              }
+            }
+            setBlog(matched);
+            setLoading(false);
+            return;
+          }
+        }
+
+        setBlog(null);
       } catch (error) {
-        console?.error("Error fetching blog:", error);
+        console.error("Error fetching blog:", error);
         setBlog(null);
       } finally {
         setLoading(false);
@@ -104,7 +159,7 @@ function BlogDetails() {
     };
 
     fetchBlog();
-  }, [blogTitle, token]);
+  }, [blogTitle, token, initialBlog]);
 
   useEffect(() => {
     if (blog?.overview) {
@@ -290,8 +345,11 @@ function BlogDetails() {
                     {blog?.header_image ? (
                       <img
                         data-aos="fade-up"
-                        src={`${API_BASE_URL}/master/secure-documents?path=${blog?.header_image}`}
+                        src={getImageSrc(blog?.header_image)}
                         alt={blog?.resource_title || "Blog"}
+                        onError={(e) => {
+                          e.currentTarget.src = "/assets/landingpage/blog1_image.png";
+                        }}
                         className="w-full h-auto object-cover"
                       />
                     ) : (
@@ -402,8 +460,11 @@ function BlogDetails() {
                     >
                       {blog?.header_image ? (
                         <img
-                          src={`${API_BASE_URL}/master/secure-documents?path=${blog?.header_image}`}
+                          src={getImageSrc(blog?.header_image)}
                           alt={blog?.resource_title || "Blog"}
+                          onError={(e) => {
+                            e.currentTarget.src = "/assets/landingpage/blog1_image.png";
+                          }}
                           className="w-full h-44 object-cover rounded-md"
                         />
                       ) : (
@@ -438,10 +499,7 @@ function BlogDetails() {
 
                           <Link
                             title="Read More"
-                            href={{
-                              pathname: `/article/${slugify(blog.resource_title)}`,
-                              // query: { id: encryptId(blog?.id) },
-                            }}
+                            href={`/article/${blog?.url_title || blog?.slug || slugify(blog.resource_title)}`}
                             className="text-[#882CFB] hover:bg-[#882CFB] hover:text-white cursor-pointer font-medium border rounded-full py-1.5 px-5"
                           >
                             Read More →
@@ -462,30 +520,73 @@ function BlogDetails() {
 }
 
 export default BlogDetails;
+
 export async function getServerSideProps({ req, params }) {
   const token = req.cookies?.access_token || null;
-  const url_title = params.title;
-  // console.log("url_title", url_title);
-  const res = await fetch(`${API_BASE_URL}${APIENDPOINTS.BLOG_DETAIL}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      blog_id: url_title,
-    }),
-  });
-  const json = await res.json();
-  const data = json?.data || {};
+  const rawTitle = params.title;
+  let blogData = null;
+
+  try {
+    // 1. Direct attempt with rawTitle
+    let res = await fetch(`${API_BASE_URL}${APIENDPOINTS.BLOG_DETAIL}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        blog_id: rawTitle,
+      }),
+    });
+    let json = await res.json();
+    if (res.ok && json?.data) {
+      blogData = json.data;
+    } else {
+      // 2. Fallback: list blogs and find match
+      const listRes = await fetch(`${API_BASE_URL}${APIENDPOINTS.BLOGS}?per_page=100`, {
+        headers: { Accept: "application/json" },
+      });
+      const listJson = await listRes.json();
+      const list = listJson?.data?.data || listJson?.data || [];
+      const match = list.find(
+        (b) =>
+          b.url_title === rawTitle ||
+          b.slug === rawTitle ||
+          String(b.id) === rawTitle ||
+          (b.resource_title &&
+            b.resource_title.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]+/g, "") === rawTitle)
+      );
+      if (match?.url_title) {
+        const retryRes = await fetch(`${API_BASE_URL}${APIENDPOINTS.BLOG_DETAIL}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ blog_id: match.url_title }),
+        });
+        const retryJson = await retryRes.json();
+        if (retryRes.ok && retryJson?.data) {
+          blogData = retryJson.data;
+        }
+      }
+    }
+  } catch (err) {
+    console.error("getServerSideProps error in article:", err);
+  }
+
   const protocol = req.headers["x-forwarded-proto"] || "http";
   const pageUrl = `${protocol}://${req.headers.host}${req.url}`;
-  const metaTitle = data?.resource_title || null;
+  const metaTitle = blogData?.resource_title || null;
   const metaDescription =
-    data?.metaDescription || data?.meta_description || null;
-  const metaKeywords = data?.meta_keywords || null;
+    blogData?.metaDescription || blogData?.meta_description || null;
+  const metaKeywords = blogData?.meta_keywords || null;
+
   return {
     props: {
+      initialBlog: blogData,
       title: metaTitle,
       description: metaDescription,
       keywords: metaKeywords,

@@ -7,38 +7,50 @@ import Loader from '@/Components/loader';
 import FormModal from '@/Components/FormModal';
 import { DynamicSEO, generateSupportPageSchema } from "@/lib/seoHelper";
 import { API_BASE_URL } from '../../apiconfig';
+import { getCourseImageUrl } from '@/utils/imageHelper';
 import {
-  FaChevronDown,
-  FaChevronUp,
-  FaCheckCircle,
-  FaBook,
-  FaHome,
-  FaDownload,
   FaFileAlt,
-  FaLightbulb,
+  FaDownload,
+  FaHome,
   FaRegClock,
   FaStar,
   FaBookmark,
+  FaCheckCircle,
+  FaCheckSquare,
+  FaLightbulb,
 } from 'react-icons/fa';
+import { FcGoogle } from 'react-icons/fc';
+import { IoLogoFacebook } from 'react-icons/io5';
+import { FaSquareInstagram } from 'react-icons/fa6';
 import { IoIosArrowForward } from 'react-icons/io';
 import { MdOutlineNotes, MdVerified, MdMenuBook } from 'react-icons/md';
+import { HiMiniArrowLongRight } from 'react-icons/hi2';
 
 const safeHtml = (html) => {
   if (typeof window === 'undefined') return html || '';
   try {
     const DOMPurify = require('dompurify');
-    return DOMPurify.sanitize(html || '');
+    let sanitized = DOMPurify.sanitize(html || '');
+    sanitized = sanitized
+      .replace(
+        /linear-gradient\(135deg,\s*#1e3a8a\s*0%,\s*#2563eb\s*100%\)/gi,
+        'linear-gradient(135deg, #882CFB 0%, #6366F1 100%)'
+      )
+      .replace(
+        /linear-gradient\([^)]*?(?:#1e3a8a|#2563eb|#1d4ed8|#2e318d)[^)]*?\)/gi,
+        'linear-gradient(135deg, #882CFB 0%, #6366F1 100%)'
+      )
+      .replace(
+        /(background(?:-color)?\s*:\s*)(?:#2563eb|#1d4ed8|#1e40af|#1e3a8a|#2e318d|#3b82f6|rgb\(\s*37\s*,\s*99\s*,\s*235\s*\)|rgb\(\s*29\s*,\s*78\s*,\s*216\s*\)|rgb\(\s*30\s*,\s*58\s*,\s*138\s*\)|rgb\(\s*46\s*,\s*49\s*,\s*141\s*\))/gi,
+        '$1#882CFB'
+      )
+      .replace(/\bbg-blue-(?:500|600|700|800|900)\b/gi, 'bg-[#882CFB]')
+      .replace(/\btext-blue-(?:500|600|700|800)\b/gi, 'text-[#882CFB]')
+      .replace(/\bborder-blue-(?:500|600|700|800)\b/gi, 'border-[#882CFB]');
+    return sanitized;
   } catch (e) {
     return html || '';
   }
-};
-
-const normalizeImageUrl = (path, fallback = '/assets/landingpage/aboutus_bg.jpg') => {
-  if (!path) return fallback;
-  if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  const base = (API_BASE_URL || '').replace(/\/+$/, '');
-  return base ? `${base}${cleanPath}` : cleanPath;
 };
 
 export default function DedicatedNotesPage({
@@ -47,7 +59,6 @@ export default function DedicatedNotesPage({
   active_country,
   url_title,
 }) {
-  const [activeTab, setActiveTab] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -58,16 +69,19 @@ export default function DedicatedNotesPage({
   const courseTitle = useMemo(
     () =>
       courseData?.support_page?.title ||
+      courseData?.course?.course_title ||
       courseData?.course?.name ||
+      courseData?.course_title ||
       courseData?.courseHeading?.title ||
       courseData?.dynamicCourseHeading?.heading ||
-      (url_title ? url_title.replace(/-/g, ' ').toUpperCase() : 'Study Notes'),
+      (url_title ? url_title.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Course Study Notes'),
     [courseData, url_title]
   );
 
   const courseDescription = useMemo(
     () =>
       courseData?.seo?.description ||
+      courseData?.course?.short_description ||
       courseData?.courseDescription?.description ||
       courseData?.dynamicCourseHeading?.description ||
       '',
@@ -75,7 +89,9 @@ export default function DedicatedNotesPage({
   );
 
   const notesHtml = useMemo(() => {
-    if (courseData?.support_page?.content) return courseData.support_page.content;
+    if (courseData?.support_page?.content) {
+      return courseData.support_page.content;
+    }
     if (Array.isArray(courseData?.aboutGeography) && courseData.aboutGeography.length > 0) {
       return courseData.aboutGeography.map((g) => g.description || '').join('<br/>');
     }
@@ -104,11 +120,18 @@ export default function DedicatedNotesPage({
 
   const courseImage = useMemo(() => {
     const raw =
+      courseData?.header_image ||
+      courseData?.course?.header_image ||
+      courseData?.support_page?.image ||
       courseData?.courseImage?.banner_image_path ||
       courseData?.certificationImage?.image_path ||
       courseData?.dynamicCourseHeading?.header_image;
-    return normalizeImageUrl(raw);
-  }, [courseData]);
+    const defaultCourse =
+      url_title && url_title.toLowerCase().includes('prince2')
+        ? '/assets/img/prince2.jpg'
+        : '/assets/landingpage/courses/course1.jpg';
+    return getCourseImageUrl(raw, defaultCourse);
+  }, [courseData, url_title]);
 
   const courseSlug = url_title || '';
   const mainCourseUrl = `/${courseSlug}`;
@@ -154,133 +177,268 @@ export default function DedicatedNotesPage({
 
       <Navbar />
 
-      <main className="min-h-screen bg-[#f8fafc] text-gray-800">
+      <main className="min-h-screen bg-white text-gray-800 font-nunito">
+        {/* Top Tab Bar (Image 3 & 5 style) */}
+        <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-xs">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center space-x-6 overflow-x-auto py-3 scrollbar-none text-xs sm:text-sm font-semibold text-gray-600">
+              <span className="whitespace-nowrap pb-1 border-b-2 border-[#882CFB] text-[#882CFB] font-bold">
+                Study Notes & Revision
+              </span>
+              <Link
+                href={mainCourseUrl}
+                className="whitespace-nowrap pb-1 border-b-2 border-transparent hover:text-[#882CFB] transition"
+              >
+                Course Overview
+              </Link>
+              <Link
+                href={`/${courseSlug}/syllabus`}
+                className="whitespace-nowrap pb-1 border-b-2 border-transparent hover:text-[#882CFB] transition"
+              >
+                Curriculum Syllabus
+              </Link>
+            </div>
+          </div>
+        </div>
+
         {/* Breadcrumb Header */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+        <div className="bg-[#FAF8FE] border-b border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
             <nav className="flex items-center space-x-2 text-xs sm:text-sm text-gray-500 overflow-x-auto whitespace-nowrap">
               <Link
                 href="/"
-                className="flex items-center hover:text-blue-600 transition"
+                className="flex items-center hover:text-[#882CFB] transition"
               >
-                <FaHome className="mr-1 text-sm" /> Home
+                <FaHome className="mr-1 text-sm text-[#2E318D]" /> Home
+              </Link>
+              <IoIosArrowForward className="text-gray-400 text-xs shrink-0" />
+              <Link
+                href="/all-courses"
+                className="hover:text-[#882CFB] transition"
+              >
+                Courses
               </Link>
               <IoIosArrowForward className="text-gray-400 text-xs shrink-0" />
               <Link
                 href={mainCourseUrl}
-                className="hover:text-blue-600 transition capitalize truncate max-w-[200px]"
+                className="hover:text-[#882CFB] transition capitalize truncate max-w-[200px]"
               >
                 {courseTitle}
               </Link>
               <IoIosArrowForward className="text-gray-400 text-xs shrink-0" />
-              <span className="text-blue-600 font-semibold">Notes & Revision Guide</span>
+              <span className="text-[#882CFB] font-semibold">Notes & Revision Guide</span>
             </nav>
           </div>
         </div>
 
-        {/* Hero Section */}
-        <section className="bg-gradient-to-r from-[#491689] via-[#6520b8] to-[#7f26d9] text-white py-12 lg:py-16 relative overflow-hidden shadow-md">
-          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-              {/* Left Column */}
-              <div className="lg:col-span-7">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/15 text-purple-100 border border-white/25 text-xs font-semibold mb-4 backdrop-blur-sm">
+        {/* Clean Light Hero Section (Pattern matching Image 3) */}
+        <section className="bg-white py-8 lg:py-12 border-b border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              {/* Left Column: Course Image Card (Clean white card matching Image 3) */}
+              <div className="lg:col-span-5 flex justify-center lg:justify-start">
+                <div className="relative w-full max-w-[480px] rounded-2xl border border-gray-200/90 bg-white p-3 shadow-md hover:shadow-lg transition-all flex items-center justify-center min-h-[240px] group">
+                  <img
+                    src={courseImage}
+                    alt={courseTitle}
+                    onError={(e) => {
+                      e.currentTarget.src =
+                        url_title && url_title.toLowerCase().includes('prince2')
+                          ? '/assets/img/prince2.jpg'
+                          : '/assets/landingpage/courses/course1.jpg';
+                    }}
+                    className="w-full h-auto max-h-[320px] object-contain rounded-xl group-hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+              </div>
+
+              {/* Right Column: Title, Ratings, Highlights, CTA */}
+              <div className="lg:col-span-7 space-y-4">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 text-[#882CFB] border border-purple-200 text-xs font-bold uppercase tracking-wider">
                   <MdOutlineNotes className="text-sm" />
-                  Curated High-Yield Revision Material
+                  Study Notes & Revision
                 </div>
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-tight">
-                  {courseTitle}{' '}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-200 to-pink-200">
-                    Study Notes
-                  </span>
+
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-900 leading-tight">
+                  {courseTitle} Study Notes & Revision Guide
                 </h1>
-                <p className="mt-4 text-base sm:text-lg text-purple-100/90 leading-relaxed line-clamp-3">
-                  {courseDescription ||
-                    'Access high-yield revision summaries, key framework cheatsheets, exam tips, and downloadable PDF study notes crafted by domain experts.'}
-                </p>
 
-                {/* Highlights */}
-                <div className="mt-6 flex flex-wrap items-center gap-4 text-xs sm:text-sm text-gray-300">
-                  <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg backdrop-blur-sm">
-                    <FaBookmark className="text-cyan-400" />
-                    <span>Exam-Focused Summaries</span>
+                {courseDescription && (
+                  <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+                    {courseDescription}
+                  </p>
+                )}
+
+                {/* Ratings row (matching Image 3) */}
+                <div className="flex items-center flex-wrap gap-4 pt-1">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1 text-base sm:text-lg">
+                      <FcGoogle />
+                      <FaStar className="text-yellow-400 text-sm" />
+                      <span className="text-black font-semibold text-sm">5.0</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-base sm:text-lg text-[#1877F2]">
+                      <IoLogoFacebook />
+                      <FaStar className="text-yellow-400 text-sm" />
+                      <span className="text-black font-semibold text-sm">5.0</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-base sm:text-lg text-[#E1306C]">
+                      <FaSquareInstagram />
+                      <FaStar className="text-yellow-400 text-sm" />
+                      <span className="text-black font-semibold text-sm">5.0</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg backdrop-blur-sm">
-                    <MdVerified className="text-teal-300" />
-                    <span>Instructor Verified</span>
+                  <div className="h-5 w-px bg-gray-300"></div>
+                  <span className="text-sm font-medium text-gray-500 whitespace-nowrap">
+                    6000+ Enrolled
+                  </span>
+                </div>
+
+                {/* Highlight Checkmark Points */}
+                <div className="space-y-2.5 pt-2">
+                  <div className="flex items-start gap-2.5">
+                    <FaCheckSquare className="text-[#882CFB] text-base shrink-0 mt-0.5" />
+                    <p className="text-xs sm:text-sm text-gray-700 leading-snug">
+                      High-yield revision summaries & key framework cheatsheets
+                    </p>
                   </div>
-                  <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg backdrop-blur-sm">
-                    <FaStar className="text-amber-400" />
-                    <span>Quick Recall Cheat Sheets</span>
+                  <div className="flex items-start gap-2.5">
+                    <FaCheckSquare className="text-[#882CFB] text-base shrink-0 mt-0.5" />
+                    <p className="text-xs sm:text-sm text-gray-700 leading-snug">
+                      Exam day strategies, formula sheets, and common pitfall analyses
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <FaCheckSquare className="text-[#882CFB] text-base shrink-0 mt-0.5" />
+                    <p className="text-xs sm:text-sm text-gray-700 leading-snug">
+                      Instructor verified material updated for the current exam pattern
+                    </p>
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="mt-8 flex flex-wrap gap-4">
+                {/* Action Buttons */}
+                <div className="pt-4 flex flex-wrap items-center gap-3.5">
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#882CFB] hover:bg-[#7221D8] text-white font-semibold text-sm shadow-md hover:shadow-purple-500/20 transition transform hover:-translate-y-0.5 cursor-pointer"
+                  >
+                    <span>Request Study Pack</span>
+                    <HiMiniArrowLongRight className="text-lg" />
+                  </button>
+
                   {pdfUrl && (
                     <a
                       href={pdfUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white font-semibold text-sm shadow-lg hover:shadow-teal-500/30 transition transform hover:-translate-y-0.5"
+                      className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-semibold text-sm transition shadow-xs"
                     >
-                      <FaDownload /> Download Complete Study PDF
+                      <FaDownload className="text-amber-600" />
+                      <span>Download PDF</span>
                     </a>
                   )}
-                  <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-semibold text-sm shadow-lg hover:shadow-cyan-500/30 transition transform hover:-translate-y-0.5"
-                  >
-                    <FaFileAlt /> Request Sample Notes
-                  </button>
+
                   <Link
                     href={mainCourseUrl}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/15 hover:bg-white/25 text-white font-semibold text-sm backdrop-blur-sm transition"
+                    className="inline-flex items-center gap-1.5 px-5 py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm transition"
                   >
                     Course Details
                   </Link>
-                </div>
-              </div>
-
-              {/* Right Column: Course Image Card */}
-              <div className="lg:col-span-5 flex justify-center lg:justify-end">
-                <div className="relative w-full max-w-[420px] rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 bg-slate-900/60 backdrop-blur-md p-3 group">
-                  <div className="overflow-hidden rounded-xl bg-slate-800 flex items-center justify-center min-h-[220px]">
-                    <img
-                      src={courseImage}
-                      alt={courseTitle}
-                      onError={(e) => {
-                        e.currentTarget.src = '/assets/landingpage/aboutus_bg.jpg';
-                      }}
-                      className="w-full h-56 sm:h-64 object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  </div>
-                  <div className="p-3 text-center">
-                    <span className="text-xs font-semibold text-teal-300 tracking-wide uppercase">
-                      Comprehensive Revision Notes
-                    </span>
-                  </div>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Content Section */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left 2 Columns */}
-            <div className="lg:col-span-2 space-y-8">
-              {/* Dynamic Notes Content */}
+        {/* 2-Column Body Section (Pattern matching Image 4 & 5) */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Left Sidebar (Image 4 pattern: Corporate Training & Trending Courses) */}
+            <div className="lg:col-span-4 space-y-5 lg:sticky lg:top-16">
+              {/* Corporate Training Card (Peach background matching Image 4) */}
+              <div className="relative rounded-2xl bg-[#F5DFD0] border border-orange-200/80 p-5 shadow-xs overflow-hidden group">
+                <h3 className="text-base font-bold text-gray-900 tracking-wider uppercase mb-2">
+                  CORPORATE TRAINING
+                </h3>
+                <ul className="text-sm text-gray-800 space-y-1.5 mb-4">
+                  <li className="list-disc ml-4">Wide range of Training dates</li>
+                  <li className="list-disc ml-4">Impactful Instructor-Led training</li>
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#882CFB] hover:bg-[#7221D8] text-white text-xs font-semibold shadow-sm transition"
+                >
+                  <span>Contact For Training</span>
+                  <HiMiniArrowLongRight />
+                </button>
+              </div>
+
+              {/* Trending Courses Card (Mint background matching Image 4) */}
+              <div className="relative rounded-2xl bg-[#E1F3F0] border border-cyan-200/80 p-5 shadow-xs overflow-hidden group">
+                <h3 className="text-base font-bold text-gray-900 tracking-wider uppercase mb-2">
+                  TRENDING COURSES
+                </h3>
+                <ul className="text-sm text-gray-800 space-y-1.5 mb-4">
+                  <li className="list-disc ml-4">Wide range of Training courses</li>
+                  <li className="list-disc ml-4">Impactful Instructor-Led training</li>
+                </ul>
+                <Link
+                  href="/all-courses"
+                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#882CFB] hover:bg-[#7221D8] text-white text-xs font-semibold shadow-sm transition"
+                >
+                  <span>View Courses</span>
+                  <HiMiniArrowLongRight />
+                </Link>
+              </div>
+
+              {/* Notes Features Card */}
+              <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-xs">
+                <h3 className="text-sm font-bold text-gray-900 mb-3 pb-2 border-b border-gray-100 uppercase tracking-wider">
+                  Notes Summary
+                </h3>
+                <ul className="space-y-3 text-xs sm:text-sm">
+                  <li className="flex items-center justify-between text-gray-600">
+                    <span className="flex items-center gap-2">
+                      <FaFileAlt className="text-[#882CFB]" /> Format
+                    </span>
+                    <span className="font-semibold text-gray-800">PDF & Printable</span>
+                  </li>
+                  <li className="flex items-center justify-between text-gray-600">
+                    <span className="flex items-center gap-2">
+                      <FaRegClock className="text-[#882CFB]" /> Revision Time
+                    </span>
+                    <span className="font-semibold text-gray-800">~3 Hours Rapid</span>
+                  </li>
+                  <li className="flex items-center justify-between text-gray-600">
+                    <span className="flex items-center gap-2">
+                      <MdVerified className="text-[#882CFB]" /> Syllabus Match
+                    </span>
+                    <span className="font-semibold text-green-600">100% Aligned</span>
+                  </li>
+                </ul>
+                <div className="mt-4 pt-3 border-t border-gray-100">
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="w-full py-2.5 px-4 rounded-xl bg-[#882CFB] hover:bg-[#7221D8] text-white text-xs font-semibold text-center shadow-xs transition"
+                  >
+                    Get Free Sample Notes
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Main Content */}
+            <div className="lg:col-span-8 space-y-8">
+              {/* Dynamic Notes Content (if available) */}
               {notesHtml && (
-                <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100">
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                    <MdMenuBook className="text-cyan-600" />
-                    Study Notes & Guide
+                <div className="bg-[#FAF8FE] border border-purple-100 rounded-2xl p-6 sm:p-8 shadow-xs">
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <MdMenuBook className="text-[#882CFB]" />
+                    Curated Revision Notes & Guide
                   </h2>
                   <div
-                    className="prose max-w-none prose-headings:font-bold prose-headings:text-gray-900 prose-p:text-gray-700 prose-li:text-gray-700 prose-cyan"
+                    className="prose max-w-none prose-headings:font-bold prose-headings:text-gray-900 prose-p:text-gray-700 prose-li:text-gray-700"
                     dangerouslySetInnerHTML={{
                       __html: isMounted ? safeHtml(notesHtml) : notesHtml,
                     }}
@@ -288,21 +446,21 @@ export default function DedicatedNotesPage({
                 </div>
               )}
 
-              {/* Key Features & High-Yield Summary */}
+              {/* Key Features & High-Yield Summary - only if data exists */}
               {keyfeatures && keyfeatures.length > 0 && (
-                <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100">
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xs border border-gray-200/90">
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-5 flex items-center gap-2">
                     <FaLightbulb className="text-amber-500" />
                     Key Focus Areas & Core Takeaways
                   </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     {keyfeatures.map((kf, idx) => (
                       <div
                         key={idx}
-                        className="p-4 rounded-xl bg-cyan-50/50 border border-cyan-100 hover:border-cyan-300 transition"
+                        className="p-3.5 rounded-xl bg-purple-50/50 border border-purple-100 hover:border-[#882CFB]/40 transition"
                       >
                         <h4 className="font-semibold text-gray-900 text-sm mb-1 flex items-center gap-2">
-                          <FaCheckCircle className="text-cyan-600 text-sm shrink-0" />
+                          <FaCheckCircle className="text-[#882CFB] text-sm shrink-0" />
                           {typeof kf === 'string' ? kf : kf?.title || `Topic ${idx + 1}`}
                         </h4>
                         {kf?.description && (
@@ -316,131 +474,61 @@ export default function DedicatedNotesPage({
                 </div>
               )}
 
-              {/* Study Notes & Revision Chapters */}
-              <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <MdMenuBook className="text-cyan-600" />
+              {/* Structured Revision Chapters */}
+              <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xs border border-gray-200/90">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                  <MdMenuBook className="text-[#882CFB]" />
                   Structured Revision Chapters
                 </h2>
-                <p className="text-sm text-gray-600 mb-6">
+                <p className="text-xs sm:text-sm text-gray-500 mb-5">
                   Compact revision blocks summarizing core definitions, models, exam formulas, and high-frequency questions.
                 </p>
 
-                <div className="space-y-4">
-                  <div className="border border-gray-200 rounded-xl p-5 hover:border-cyan-400 transition bg-slate-50/60">
+                <div className="space-y-3.5">
+                  <div className="border border-gray-200 rounded-xl p-4 hover:border-purple-200 transition bg-slate-50/60">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase tracking-wider text-cyan-700 bg-cyan-100 px-2.5 py-0.5 rounded-full">
+                      <span className="text-xs font-bold uppercase tracking-wider text-[#2E318D] bg-purple-100 px-2.5 py-0.5 rounded-full">
                         Chapter 1
                       </span>
                       <span className="text-xs text-gray-500">Core Concepts</span>
                     </div>
-                    <h3 className="font-bold text-gray-900 text-base mt-2">
+                    <h3 className="font-bold text-gray-900 text-sm sm:text-base mt-2">
                       Key Terminology, Frameworks & Definitions
                     </h3>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-xs sm:text-sm text-gray-600 mt-1">
                       Quick overview of fundamental terminology, official acronyms, and standard exam definitions.
                     </p>
                   </div>
 
-                  <div className="border border-gray-200 rounded-xl p-5 hover:border-cyan-400 transition bg-slate-50/60">
+                  <div className="border border-gray-200 rounded-xl p-4 hover:border-purple-200 transition bg-slate-50/60">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase tracking-wider text-cyan-700 bg-cyan-100 px-2.5 py-0.5 rounded-full">
+                      <span className="text-xs font-bold uppercase tracking-wider text-[#2E318D] bg-purple-100 px-2.5 py-0.5 rounded-full">
                         Chapter 2
                       </span>
                       <span className="text-xs text-gray-500">Process & Execution</span>
                     </div>
-                    <h3 className="font-bold text-gray-900 text-base mt-2">
+                    <h3 className="font-bold text-gray-900 text-sm sm:text-base mt-2">
                       Execution Flowcharts & Process Life Cycles
                     </h3>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-xs sm:text-sm text-gray-600 mt-1">
                       Visual cheatsheets, input/output process mapping, and RACI governance matrices.
                     </p>
                   </div>
 
-                  <div className="border border-gray-200 rounded-xl p-5 hover:border-cyan-400 transition bg-slate-50/60">
+                  <div className="border border-gray-200 rounded-xl p-4 hover:border-purple-200 transition bg-slate-50/60">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase tracking-wider text-cyan-700 bg-cyan-100 px-2.5 py-0.5 rounded-full">
+                      <span className="text-xs font-bold uppercase tracking-wider text-[#2E318D] bg-purple-100 px-2.5 py-0.5 rounded-full">
                         Chapter 3
                       </span>
                       <span className="text-xs text-gray-500">Exam Strategy</span>
                     </div>
-                    <h3 className="font-bold text-gray-900 text-base mt-2">
+                    <h3 className="font-bold text-gray-900 text-sm sm:text-base mt-2">
                       Exam Tips, Common Pitfalls & High-Scoring Tactics
                     </h3>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-xs sm:text-sm text-gray-600 mt-1">
                       Proven time management guidelines, elimination techniques for MCQs, and sample practice scenarios.
                     </p>
                   </div>
-                </div>
-              </div>
-
-              {/* Download CTA Banner */}
-              <div className="rounded-2xl p-6 sm:p-8 bg-gradient-to-r from-cyan-900 to-slate-900 text-white shadow-md">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-                  <div>
-                    <h3 className="text-lg sm:text-xl font-bold">
-                      Need the Full Study Pack & Mock Question Papers?
-                    </h3>
-                    <p className="text-sm text-gray-300 mt-1 max-w-md">
-                      Get full access to mock tests, instructor lecture slides, mind-maps, and revision notes.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="shrink-0 px-6 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold text-sm shadow-lg transition"
-                  >
-                    Download Study Pack
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Right 1 Column */}
-            <div className="space-y-6">
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 sticky top-24">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 pb-3 border-b border-gray-100">
-                  Notes Features
-                </h3>
-                <ul className="space-y-3.5 text-sm">
-                  <li className="flex items-center justify-between text-gray-600">
-                    <span className="flex items-center gap-2">
-                      <FaFileAlt className="text-cyan-600" /> Format
-                    </span>
-                    <span className="font-semibold text-gray-800">
-                      PDF & Printable
-                    </span>
-                  </li>
-                  <li className="flex items-center justify-between text-gray-600">
-                    <span className="flex items-center gap-2">
-                      <FaRegClock className="text-cyan-600" /> Revision Time
-                    </span>
-                    <span className="font-semibold text-gray-800">
-                      ~3 Hours Rapid
-                    </span>
-                  </li>
-                  <li className="flex items-center justify-between text-gray-600">
-                    <span className="flex items-center gap-2">
-                      <MdVerified className="text-cyan-600" /> Syllabus Match
-                    </span>
-                    <span className="font-semibold text-teal-600">
-                      100% Aligned
-                    </span>
-                  </li>
-                </ul>
-
-                <div className="mt-6 pt-4 border-t border-gray-100 space-y-3">
-                  <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="w-full py-3 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-semibold text-sm text-center shadow-md hover:shadow-cyan-500/20 transition"
-                  >
-                    Get Free Sample Notes
-                  </button>
-                  <Link
-                    href={mainCourseUrl}
-                    className="block w-full py-2.5 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm text-center transition"
-                  >
-                    Back to Course
-                  </Link>
                 </div>
               </div>
             </div>

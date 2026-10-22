@@ -12,6 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import { FiChevronsRight } from "react-icons/fi";
 import { encryptId } from "@/utils/encryption";
 import { API_BASE_URL } from "../../apiconfig";
+import { getCourseImageUrl } from "@/utils/imageHelper";
 import { IoCallOutline, IoCloseCircle, IoCloseOutline } from "react-icons/io5";
 import { TfiEmail } from "react-icons/tfi";
 import { BsChatDots } from "react-icons/bs";
@@ -317,19 +318,23 @@ export default function Navbar() {
                                     p-1
                                     rounded-lg
                                     transition-all
-                                    hover:bg-blue-50
-                                    hover:text-blue-600
+                                    hover:bg-purple-50
+                                    hover:text-[#882CFB]
                                   "
                                   >
                                     {/* Image */}
                                     <div className="relative w-10 h-10 shrink-0">
                                       {course?.header_image ? (
                                         <img
-                                          src={`${API_BASE_URL}/master/secure-documents?path=${course?.header_image}`}
+                                          src={getCourseImageUrl(course?.header_image)}
                                           alt={course?.course_title}
+                                          onError={(e) => {
+                                            e.currentTarget.onerror = null;
+                                            e.currentTarget.src = '/assets/landingpage/courses/course2.png';
+                                          }}
                                           className="
                                         w-full h-full
-                                        object-cover
+                                        object-contain
                                         bg-gray-50
                                         rounded-md
                                         p-1
@@ -366,7 +371,7 @@ export default function Navbar() {
                                       text-base
                                       text-gray-500
                                       transition-all
-                                      group-hover:translate-x-1 bg-blue-100 group-hover:bg-[#4347ca]
+                                      group-hover:translate-x-1 bg-purple-100 group-hover:bg-[#882CFB]
                                       group-hover:text-white p-1 rounded-full 
                                     "
                                     />
@@ -406,7 +411,7 @@ export default function Navbar() {
                                   rounded-md
                                   p-1
                                   transition-all
-                                  hover:bg-blue-50
+                                  hover:bg-purple-50
                                 "
                               title={course?.course_title}
                             >
@@ -646,7 +651,7 @@ export default function Navbar() {
                     setIsDropdownOpen(true);
                   }
                 }}
-                className="bg-white border form-input border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block md:min-w-[250px] w-full pr-10 p-2.5"
+                className="bg-white border form-input border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-[#882CFB] focus:border-[#882CFB] block md:min-w-[250px] w-full pr-10 p-2.5"
                 placeholder="Search For Course"
               />
               <svg
@@ -794,11 +799,11 @@ export default function Navbar() {
                                     <div className="relative w-10 h-10 shrink-0">
                                       {course?.header_image ? (
                                         <img
-                                          src={`${API_BASE_URL}/master/secure-documents?path=${course?.header_image}`}
+                                          src={getCourseImageUrl(course?.header_image)}
                                           alt={course?.course_title}
                                           className="
                                         w-full h-full
-                                        object-cover
+                                        object-contain
                                         bg-gray-50
                                         rounded-md
                                         p-1

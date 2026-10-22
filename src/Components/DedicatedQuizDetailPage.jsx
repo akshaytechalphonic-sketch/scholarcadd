@@ -275,67 +275,66 @@ export default function DedicatedQuizDetailPage({
       <Navbar />
 
       <main className="min-h-screen bg-[#f3f4f8]">
-        {/* Header Banner */}
-        <header className="relative bg-gradient-to-r from-[#491689] via-[#6520b8] to-[#7f26d9] text-white pt-10 pb-12 px-4 sm:px-6 lg:px-8 text-center shadow-md">
+        {/* Header Banner matching ScholarAcad Clean Light Pattern */}
+        <header className="bg-white border-b border-gray-200 py-8 sm:py-10 px-4 sm:px-6 lg:px-8 text-center shadow-xs">
           <div className="max-w-5xl mx-auto space-y-4">
             {/* Breadcrumb Navigation */}
-            <nav className="flex items-center justify-center flex-wrap gap-2 text-xs text-purple-200 mb-2">
+            <nav className="flex items-center justify-center flex-wrap gap-2 text-xs text-gray-500 mb-2">
               <Link
                 href="/"
-                className="hover:text-white flex items-center gap-1.5 transition-colors"
+                className="hover:text-[#882CFB] flex items-center gap-1.5 transition-colors"
               >
-                <IoHomeOutline className="text-sm" />
+                <IoHomeOutline className="text-sm text-[#2E318D]" />
                 <span>Home</span>
               </Link>
-              <IoIosArrowForward className="text-purple-300 text-xs" />
+              <IoIosArrowForward className="text-gray-400 text-xs" />
               <Link
                 href="/all-courses"
-                className="hover:text-white transition-colors"
+                className="hover:text-[#882CFB] transition-colors"
               >
                 Courses
               </Link>
-              <IoIosArrowForward className="text-purple-300 text-xs" />
+              <IoIosArrowForward className="text-gray-400 text-xs" />
               <Link
                 href={`/${courseSlug}`}
-                className="hover:text-white line-clamp-1 max-w-[180px] sm:max-w-none transition-colors"
+                className="hover:text-[#882CFB] line-clamp-1 max-w-[180px] sm:max-w-none transition-colors"
               >
                 {courseDisplayName}
               </Link>
-              <IoIosArrowForward className="text-purple-300 text-xs" />
+              <IoIosArrowForward className="text-gray-400 text-xs" />
               <Link
                 href={`/${courseSlug}/quizzes`}
-                className="hover:text-white transition-colors"
+                className="hover:text-[#882CFB] transition-colors"
               >
                 Quizzes
               </Link>
-              <IoIosArrowForward className="text-purple-300 text-xs" />
-              <span className="text-amber-300 font-semibold line-clamp-1 max-w-[200px]">
+              <IoIosArrowForward className="text-gray-400 text-xs" />
+              <span className="text-[#882CFB] font-semibold line-clamp-1 max-w-[200px]">
                 {quiz?.title || "Details"}
               </span>
             </nav>
 
-            {/* Title with Rocket Icon */}
-            <div className="flex items-center justify-center gap-3">
-              <span className="text-2xl sm:text-3xl">🚀</span>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-white">
+            {/* Title */}
+            <div className="flex items-center justify-center gap-2">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900">
                 {quiz?.title || "Quiz Details"}
               </h1>
             </div>
 
             {/* Course Name Subtitle */}
-            <p className="text-xs sm:text-sm text-purple-100/90 font-medium">
-              Course: <span className="text-amber-300 font-semibold">{courseDisplayName}</span>
+            <p className="text-xs sm:text-sm text-gray-600 font-medium">
+              Course: <span className="text-[#882CFB] font-semibold">{courseDisplayName}</span>
             </p>
 
             {/* Feature Capsule Badges */}
             <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-              <span className="px-3.5 py-1 rounded-full text-xs font-semibold bg-white/10 border border-white/25 text-white">
+              <span className="px-3.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-[#882CFB] border border-purple-200">
                 {isMock ? "Full Mock Exam Simulator" : "Topic Practice Quiz"}
               </span>
-              <span className="px-3.5 py-1 rounded-full text-xs font-semibold bg-white/10 border border-white/25 text-white">
+              <span className="px-3.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-[#882CFB] border border-purple-200">
                 Verified Questions
               </span>
-              <span className="px-3.5 py-1 rounded-full text-xs font-semibold bg-white/10 border border-white/25 text-white">
+              <span className="px-3.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-[#882CFB] border border-purple-200">
                 Detailed Explanations
               </span>
             </div>
@@ -348,7 +347,7 @@ export default function DedicatedQuizDetailPage({
           <div>
             <Link
               href={`/${courseSlug}/quizzes`}
-              className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-[#6520b8] hover:text-[#491689] bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200 transition-all hover:shadow"
+              className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-[#882CFB] hover:text-[#2E318D] bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200 transition-all hover:shadow"
             >
               <FaArrowLeft className="text-xs" />
               <span>Back to All Quizzes</span>
@@ -377,7 +376,7 @@ export default function DedicatedQuizDetailPage({
               <p className="text-sm text-slate-500 mb-6">{error}</p>
               <Link
                 href={`/${active_country || "in"}/${courseSlug}/quizzes`}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#6520b8] text-white rounded-xl text-xs font-bold hover:bg-[#53169c] transition shadow-sm"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#882CFB] text-white rounded-xl text-xs font-bold hover:bg-[#701cdb] transition shadow-sm"
               >
                 <FaArrowLeft className="text-xs" />
                 <span>Return to Quizzes Listing</span>
@@ -395,13 +394,13 @@ export default function DedicatedQuizDetailPage({
                     <span
                       className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold ${
                         isMock
-                          ? "bg-purple-100 text-purple-700 border border-purple-200"
+                          ? "bg-[#F4EFFF] text-[#882CFB] border border-[#E4D3FF]"
                           : "bg-emerald-100 text-emerald-700 border border-emerald-200"
                       }`}
                     >
                       <span
                         className={`w-2 h-2 rounded-full ${
-                          isMock ? "bg-purple-600 animate-pulse" : "bg-emerald-600"
+                          isMock ? "bg-[#882CFB] animate-pulse" : "bg-emerald-600"
                         }`}
                       ></span>
                       {isMock ? "Mock Exam" : "Practice Quiz"}
@@ -426,7 +425,7 @@ export default function DedicatedQuizDetailPage({
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* Total Questions */}
                   <div className="bg-slate-50/90 border border-slate-200/80 rounded-2xl p-5 flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl shrink-0">
+                    <div className="w-12 h-12 rounded-xl bg-[#F4EFFF] text-[#882CFB] flex items-center justify-center text-xl shrink-0">
                       <FaQuestionCircle />
                     </div>
                     <div>
@@ -441,7 +440,7 @@ export default function DedicatedQuizDetailPage({
 
                   {/* Duration */}
                   <div className="bg-slate-50/90 border border-slate-200/80 rounded-2xl p-5 flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl shrink-0">
+                    <div className="w-12 h-12 rounded-xl bg-amber-50 text-[#F7B439] flex items-center justify-center text-xl shrink-0">
                       <FaClock />
                     </div>
                     <div>
@@ -471,7 +470,7 @@ export default function DedicatedQuizDetailPage({
 
                   {/* Quiz Type */}
                   <div className="bg-slate-50/90 border border-slate-200/80 rounded-2xl p-5 flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-xl shrink-0">
+                    <div className="w-12 h-12 rounded-xl bg-[#F4EFFF] text-[#882CFB] flex items-center justify-center text-xl shrink-0">
                       <MdQuiz />
                     </div>
                     <div>
@@ -486,9 +485,9 @@ export default function DedicatedQuizDetailPage({
                 </div>
 
                 {/* Instructions & Guidelines Box */}
-                <div className="bg-purple-50/50 border border-purple-100 rounded-2xl p-6 space-y-3">
-                  <div className="flex items-center gap-2 text-sm font-bold text-[#491689]">
-                    <FaInfoCircle className="text-base" />
+                <div className="bg-[#F4EFFF]/60 border border-[#E4D3FF] rounded-2xl p-6 space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-bold text-[#2E318D]">
+                    <FaInfoCircle className="text-base text-[#882CFB]" />
                     <span>Important Exam Instructions</span>
                   </div>
                   <ul className="text-xs sm:text-sm text-slate-600 space-y-2 list-disc list-inside leading-relaxed">
@@ -520,10 +519,10 @@ export default function DedicatedQuizDetailPage({
                     onClick={() => handleStartAttempt("exam")}
                     className={`flex-1 py-3.5 px-6 rounded-xl text-sm font-bold flex items-center justify-center gap-2.5 transition-all shadow-md shadow-purple-200 ${
                       startingMode === "exam"
-                        ? "bg-[#53169c] text-white opacity-90 cursor-wait"
+                        ? "bg-[#701cdb] text-white opacity-90 cursor-wait"
                         : Boolean(startingMode)
                         ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                        : "bg-[#6520b8] hover:bg-[#53169c] text-white cursor-pointer"
+                        : "bg-[#882CFB] hover:bg-[#701cdb] text-white cursor-pointer"
                     }`}
                   >
                     {startingMode === "exam" ? (
@@ -545,10 +544,10 @@ export default function DedicatedQuizDetailPage({
                     onClick={() => handleStartAttempt("practice")}
                     className={`flex-1 py-3.5 px-6 rounded-xl text-sm font-bold border-2 flex items-center justify-center gap-2.5 transition-all ${
                       startingMode === "practice"
-                        ? "border-[#53169c] bg-purple-50 text-[#53169c] cursor-wait"
+                        ? "border-[#701cdb] bg-purple-50 text-[#701cdb] cursor-wait"
                         : Boolean(startingMode)
                         ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed"
-                        : "border-[#6520b8] bg-white hover:bg-slate-50 text-[#6520b8] cursor-pointer"
+                        : "border-[#882CFB] bg-white hover:bg-[#F4EFFF] text-[#882CFB] cursor-pointer"
                     }`}
                   >
                     {startingMode === "practice" ? (

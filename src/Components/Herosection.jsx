@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { CgSmileSad } from "react-icons/cg";
 import { API_BASE_URL, APIENDPOINTS } from "../../apiconfig";
+import { getCourseImageUrl } from "@/utils/imageHelper";
 import Loader from "./loader";
 import { useCounter } from "@/utils/useCounter";
 import { HiMiniArrowLongRight } from "react-icons/hi2";
@@ -816,7 +817,7 @@ export default function LandingPage() {
                       <div className="relative overflow-hidden rounded-xl bg-slate-50 border border-gray-100 flex items-center justify-center h-48 group-hover:bg-purple-50/40 transition-colors">
                         {course?.header_image ? (
                           <img
-                            src={`${API_BASE_URL}/master/secure-documents?path=${course?.header_image}` || ""}
+                            src={getCourseImageUrl(course?.header_image)}
                             alt={course?.course_title}
                             onError={(e) => {
                               e.currentTarget.src = "/assets/landingpage/aboutus_bg.jpg";

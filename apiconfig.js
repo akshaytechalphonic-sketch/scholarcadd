@@ -71,4 +71,6 @@ export const APIENDPOINTS = {
   VIEW_COURSE: "/api/course/view-course",
   COURSE_SYLLABUS: "/api/courses",
   COURSE_QUIZZES: "/api/courses",
+  RESOURCE_QUIZZES: "/api/resource/quizzes",
+  RESOURCE_SUPPORT_PAGES: "/api/resource/support-pages",
 };

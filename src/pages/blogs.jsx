@@ -12,6 +12,7 @@ import Loader from "@/Components/loader";
 import { CiCircleCheck, CiSearch } from "react-icons/ci";
 import { CiWarning } from "react-icons/ci";
 import { CiCircleRemove } from "react-icons/ci";
+import { getBlogImageUrl } from "@/utils/imageHelper";
 function blogs() {
   const { token } = useAuth();
   const [activeTab, setActiveTab] = useState(null);
@@ -20,31 +21,30 @@ function blogs() {
   const [loadingBlogs, setLoadingBlogs] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [perPage, setPerPage] = useState(9);
+  const [perPage, setPerPage] = useState(6);
   const { categories } = useAuth();
   const [activeTab2, setActiveTab2] = useState(0);
   console.log("categories", categories);
   // 🔹 Fetch all blog types
   useEffect(() => {
-    if (!token) return;
     const fetchBlogTypes = async () => {
       try {
+        const headers = {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        };
         const res = await fetch(`${API_BASE_URL}${APIENDPOINTS.BLOG_TYPE}`, {
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers,
         });
         if (!res.ok) {
           console.warn("HTTP error! Status:", res.status);
           return;
         }
         const data = await res.json();
-        console.log("data---blog type", data);
         if (data?.data?.length > 0) {
           setBlogTypes(data.data);
-          setActiveTab(data.data[0]?.id);
+          setActiveTab((prev) => prev || data.data[0]?.id || 239);
         }
       } catch (err) {
         console.error("Error fetching blog types:", err);
@@ -55,7 +55,7 @@ function blogs() {
 
   // 🔹 Fetch blogs by selected blog type ID
   useEffect(() => {
-    if (!token || !activeTab) return;
+    if (!activeTab) return;
     const fetchBlogsByType = async () => {
       try {
         setLoadingBlogs(true);
@@ -68,13 +68,14 @@ function blogs() {
         if (activeTab2 !== 0) {
           payload.course_category_id = activeTab2;
         }
+        const headers = {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        };
         const res = await fetch(`${API_BASE_URL}${APIENDPOINTS.BLOG_LIST}`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers,
           body: JSON.stringify(payload),
         });
         if (!res.ok) {
@@ -86,7 +87,7 @@ function blogs() {
         setBlogs(data?.data || []);
         setCurrentPage(data?.pagination?.current_page || 1);
         setTotalPages(data?.pagination?.last_page || 1);
-        setPerPage(data?.pagination?.per_page || 9);
+        setPerPage(data?.pagination?.per_page || 6);
       } catch (err) {
         console.error("Error fetching blogs by type:", err);
       } finally {
@@ -479,33 +480,35 @@ function blogs() {
                           {blogs?.map((blog) => (
                             <div
                               key={blog?.id}
-                              className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition"
+                              className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition flex flex-col justify-between"
                             >
-                              <img
-                                src={
-                                  `${API_BASE_URL}/master/secure-documents?path=
-                                   ${blog?.header_image}` ||
-                                  "/assets/landingpage/blog1_image.png"
-                                }
-                                alt={blog?.title}
-                                className="w-full h-44 object-cover"
-                              />
-                              <div className="p-4">
-                                <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-                                  <FaUser className="text-[#2E318D]" />{" "}
-                                  {blog?.resource_auther || "Scholaracad"}
-                                  <FaTag className="text-[#2E318D]" />{" "}
-                                  <p className="text-gray-500">
-                                    {RESOURCE_CATEGORY_MAP[
-                                      blog?.resource_category
-                                    ] || "General"}
-                                  </p>
+                              <div>
+                                <img
+                                  src={getBlogImageUrl(blog?.header_image)}
+                                  alt={blog?.resource_title || blog?.title || "Blog"}
+                                  onError={(e) => {
+                                    e.currentTarget.src = "/assets/landingpage/blog1_image.png";
+                                  }}
+                                  className="w-full h-44 object-cover"
+                                />
+                                <div className="p-4">
+                                  <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                                    <FaUser className="text-[#2E318D]" />{" "}
+                                    {blog?.resource_auther || "Scholaracad"}
+                                    <FaTag className="text-[#2E318D]" />{" "}
+                                    <p className="text-gray-500">
+                                      {RESOURCE_CATEGORY_MAP[
+                                        blog?.resource_category
+                                      ] || "General"}
+                                    </p>
+                                  </div>
+                                  <h2 title={blog?.resource_title} className="font-semibold text-gray-800 mb-2 leading-snug line-clamp-2">
+                                    {blog?.resource_title}
+                                  </h2>
                                 </div>
-                                <h2 title={blog?.resource_title} className="font-semibold text-gray-800 mb-2 leading-snug">
-                                  {blog?.resource_title?.length > 50
-                                    ? blog.resource_title.slice(0, 50) + "..."
-                                    : blog?.resource_title}
-                                </h2>
+                              </div>
+
+                              <div className="p-4 pt-0">
                                 <hr className="my-2 text-gray-300" />
                                 <div className="flex justify-between items-center text-sm text-gray-500">
                                   <div className="flex items-center gap-2">
@@ -524,13 +527,8 @@ function blogs() {
                                   </div>
                                   <Link
                                     title="Read More"
-                                    href={{
-                                      pathname: `/article/${slugify(
-                                        blog.resource_title
-                                      )}`,
-                                      // query: { id: encryptId(blog?.id) },
-                                    }}
-                                    className="text-[#882CFB] hover:bg-[#882CFB] hover:text-white cursor-pointer font-medium border rounded-full py-1.5 px-5"
+                                    href={`/article/${blog?.url_title || blog?.slug || slugify(blog.resource_title)}`}
+                                    className="text-[#882CFB] hover:bg-[#882CFB] hover:text-white cursor-pointer font-medium border border-[#882CFB]/40 rounded-full py-1.5 px-5 transition"
                                   >
                                     Read More →
                                   </Link>
@@ -540,8 +538,8 @@ function blogs() {
                           ))}
                         </div>
                         {/* Pagination */}
-                        <div className="flex justify-end">
-                          {totalPages > 1 && (
+                        <div className="flex justify-center mt-8 mb-6">
+                          {totalPages >= 1 && blogs?.length > 0 && (
                             <Pagination
                               currentPage={currentPage}
                               totalPages={totalPages}

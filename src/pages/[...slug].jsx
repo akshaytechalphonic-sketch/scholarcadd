@@ -141,16 +141,18 @@ import { LuDownload, LuTvMinimal } from "react-icons/lu";
 import { BsCheck2All, BsCheck2Circle } from "react-icons/bs";
 import Contactus from "@/Components/contact";
 import { CgSmileSad } from "react-icons/cg";
+import { getCourseImageUrl } from "@/utils/imageHelper";
 
 const normalizeImageUrl = (path, fallback = "/assets/landingpage/aboutus_bg.jpg") => {
-  if (!path) return fallback;
-  if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  const base = (API_BASE_URL || "").replace(/\/+$/, "");
-  return base ? `${base}${cleanPath}` : cleanPath;
+  return getCourseImageUrl(path, fallback);
 };
 
-function DynamicPage({ courseData: initialCourseData = null }) {
+
+function DynamicPage({
+  courseData: initialCourseData = null,
+  isSupportPage: initialIsSupportPage = false,
+  matchedSupportPage: initialMatchedSupportPage = null,
+}) {
   const router = useRouter();
   const { id } = router.query;
   const { slug } = router.query;
@@ -299,12 +301,19 @@ function DynamicPage({ courseData: initialCourseData = null }) {
 
   const matchedSupportPage = useMemo(() => {
     if (quizIdx !== -1) return null;
-    return (
-      (slug || []).find((s) =>
-        SUPPORT_PAGE_SLUGS.includes(s?.toLowerCase())
-      )?.toLowerCase() || null
-    );
-  }, [slug, quizIdx]);
+    if (initialMatchedSupportPage) return initialMatchedSupportPage;
+    const staticMatch = (slug || []).find((s) =>
+      SUPPORT_PAGE_SLUGS.includes(s?.toLowerCase())
+    )?.toLowerCase();
+    if (staticMatch) return staticMatch;
+    if (initialIsSupportPage || initialCourseData?.support_page) {
+      const segments = Array.isArray(slug) ? slug : slug ? [slug] : [];
+      const isCountry = segments.length >= 2 && segments[0]?.length === 2;
+      const sub = isCountry ? segments[2] : segments[1];
+      if (sub) return sub.toLowerCase();
+    }
+    return null;
+  }, [slug, quizIdx, initialMatchedSupportPage, initialIsSupportPage, initialCourseData]);
 
   const isSyllabus = useMemo(() => {
     return matchedSupportPage === "syllabus";
@@ -315,8 +324,8 @@ function DynamicPage({ courseData: initialCourseData = null }) {
   }, [matchedSupportPage]);
 
   const isSupportPage = useMemo(() => {
-    return Boolean(matchedSupportPage);
-  }, [matchedSupportPage]);
+    return Boolean(matchedSupportPage || initialIsSupportPage || initialCourseData?.support_page);
+  }, [matchedSupportPage, initialIsSupportPage, initialCourseData]);
 
   const isQuestionsScreen = useMemo(() => {
     return (
@@ -348,11 +357,12 @@ function DynamicPage({ courseData: initialCourseData = null }) {
     return (slug || []).filter(
       (s, idx) =>
         !SUPPORT_PAGE_SLUGS.includes(s?.toLowerCase()) &&
+        (!matchedSupportPage || s?.toLowerCase() !== matchedSupportPage.toLowerCase()) &&
         !["quizzes", "quiz", "quizz"].includes(s?.toLowerCase()) &&
         (!isQuizDetail && !isQuestionsScreen ? true : idx !== quizIdx + 1) &&
         (!isQuestionsScreen ? true : idx !== quizIdx + 2)
     );
-  }, [slug, isQuizDetail, isQuestionsScreen, quizIdx]);
+  }, [slug, isQuizDetail, isQuestionsScreen, quizIdx, matchedSupportPage]);
 
   const isCountryPrefix = useMemo(() => {
     return filteredSlug?.length >= 2 && filteredSlug[0]?.length === 2;
@@ -477,6 +487,13 @@ function DynamicPage({ courseData: initialCourseData = null }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (initialCourseData) {
+      setCourseData(initialCourseData);
+      setError(null);
+    }
+  }, [initialCourseData, router.asPath]);
+
+  useEffect(() => {
     const segments = router.asPath.split("?")[0].split("/").filter(Boolean);
     if (segments.length > 0 && segments[0]?.toLowerCase() === "in") {
       return;
@@ -491,7 +508,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
       return;
     }
 
-    if (!token) return;
+    if (!token && !isSupportPage && !isQuizzes && !isQuizDetail && !isQuestionsScreen) return;
 
     if (!url_title && !isNotes) {
       setError("Required information is missing.");
@@ -603,7 +620,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
             method: "GET",
             headers: {
               Accept: "application/json",
-              Authorization: `Bearer ${token}`,
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
           });
           if (res.status === 404 && matchedSupportPage === "exam") {
@@ -862,7 +879,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
           <p className="mt-2 text-gray-600">We will contact you soon.</p>
           <button
             onClick={() => setShowSuccessModal(false)}
-            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="mt-4 px-6 py-2 bg-[#882CFB] text-white rounded-md hover:bg-[#7221D8]"
           >
             OK
           </button>
@@ -1330,7 +1347,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                           return (
                             <div
                               key={index}
-                              className="flex flex-col items-center bg-blue-50 py-1 border border-[#882CFB]  rounded-md p-3"
+                              className="flex flex-col items-center bg-[#FAF8FE] py-1 border border-[#882CFB]  rounded-md p-3"
                             >
                               <span className="text-xs font-semibold text-gray-600 border-b">
                                 {day}
@@ -1364,7 +1381,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                     </div>
 
                     {/* <div className="flex gap-3 mt-3">
-                <div className="w-10 border border-blue-300 rounded-sm shadow-sm bg-white">
+                <div className="w-10 border border-purple-200 rounded-sm shadow-sm bg-white">
                   <div className="h-2 bg-[#F7B439] rounded-t-sm"></div>
                   <div className="flex flex-col items-center ">
                     <p className="text-sm font-bold">06</p>
@@ -1372,7 +1389,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                   </div>
                 </div>
 
-                <div className="w-10 border border-blue-300 rounded-sm shadow-sm bg-white">
+                <div className="w-10 border border-purple-200 rounded-sm shadow-sm bg-white">
                   <div className="h-2 bg-[#F7B439] rounded-t-sm"></div>
                   <div className="flex flex-col items-center ">
                     <p className="text-sm font-bold">07</p>
@@ -1380,7 +1397,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                   </div>
                 </div>
 
-                <div className="w-10 border border-blue-300 rounded-sm shadow-sm bg-white">
+                <div className="w-10 border border-purple-200 rounded-sm shadow-sm bg-white">
                   <div className="h-2 bg-[#F7B439] rounded-t-sm"></div>
                   <div className="flex flex-col items-center ">
                     <p className="text-sm font-bold">13</p>
@@ -1388,7 +1405,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                   </div>
                 </div>
 
-                <div className="w-10 border border-blue-300 rounded-sm shadow-sm bg-white">
+                <div className="w-10 border border-purple-200 rounded-sm shadow-sm bg-white">
                   <div className="h-2 bg-[#F7B439] rounded-t-sm"></div>
                   <div className="flex flex-col items-center ">
                     <p className="text-sm font-bold">14</p>
@@ -1836,7 +1853,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
             {[6, 7, 13, 14].map((day, idx) => (
               <div
                 key={idx}
-                className="w-10 border border-blue-300 rounded-sm shadow-sm bg-white"
+                className="w-10 border border-purple-200 rounded-sm shadow-sm bg-white"
               >
                 <div className="h-2 bg-[#F7B439] rounded-t-sm"></div>
                 <div className="flex flex-col items-center ">
@@ -1864,7 +1881,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                 return (
                   <div
                     key={index}
-                    className="flex flex-col items-center bg-blue-50 py-1 border border-[#882CFB] rounded-md p-3"
+                    className="flex flex-col items-center bg-[#FAF8FE] py-1 border border-[#882CFB] rounded-md p-3"
                   >
                     <span className="text-xs font-semibold text-gray-600 border-b">
                       {day}
@@ -2423,53 +2440,105 @@ function DynamicPage({ courseData: initialCourseData = null }) {
     241: "Article",
     242: "Info",
   };
-  if (!courseData) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader />
-      </div>
-    );
-  }
-  if (!courseData) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
-        <p className="text-xl font-semibold">No Courses found</p>
-      </div>
-    );
-  }
-  const sanitizedHtml = DOMPurify.sanitize(
-    courseData?.courseOverview?.course_overview,
+  const safeJsonParse = (val, fallback = {}) => {
+    if (!val) return fallback;
+    if (typeof val === "object") return val;
+    try {
+      return JSON.parse(val);
+    } catch (e) {
+      return fallback;
+    }
+  };
+
+  const sanitizedHtml = (() => {
+    const raw = courseData?.courseOverview?.course_overview;
+    if (!raw) return "";
+    try {
+      let sanitized = DOMPurify.sanitize(raw);
+      sanitized = sanitized
+        .replace(
+          /linear-gradient\(135deg,\s*#1e3a8a\s*0%,\s*#2563eb\s*100%\)/gi,
+          "linear-gradient(135deg, #882CFB 0%, #6366F1 100%)"
+        )
+        .replace(
+          /linear-gradient\([^)]*?(?:#1e3a8a|#2563eb|#1d4ed8|#2e318d)[^)]*?\)/gi,
+          "linear-gradient(135deg, #882CFB 0%, #6366F1 100%)"
+        )
+        .replace(
+          /(background(?:-color)?\s*:\s*)(?:#2563eb|#1d4ed8|#1e40af|#1e3a8a|#2e318d|#3b82f6|rgb\(\s*37\s*,\s*99\s*,\s*235\s*\)|rgb\(\s*29\s*,\s*78\s*,\s*216\s*\)|rgb\(\s*30\s*,\s*58\s*,\s*138\s*\)|rgb\(\s*46\s*,\s*49\s*,\s*141\s*\))/gi,
+          "$1#882CFB"
+        )
+        .replace(/\bbg-blue-(?:500|600|700|800|900)\b/gi, "bg-[#882CFB]")
+        .replace(/\btext-blue-(?:500|600|700|800)\b/gi, "text-[#882CFB]")
+        .replace(/\bborder-blue-(?:500|600|700|800)\b/gi, "border-[#882CFB]");
+      return sanitized;
+    } catch (e) {
+      return raw;
+    }
+  })();
+
+  const highlights = safeJsonParse(
+    courseData?.courseHeading?.course_highlights_in_pointers,
+    []
   );
 
-  const highlights = JSON.parse(
-    courseData?.courseHeading?.course_highlights_in_pointers || "[]");
+  const whychooseusdata1 = safeJsonParse(
+    courseData?.courseWhyScholarAcad?.record_one,
+    {}
+  );
+  const whychooseusdata2 = safeJsonParse(
+    courseData?.courseWhyScholarAcad?.record_two,
+    {}
+  );
+  const whychooseusdata3 = safeJsonParse(
+    courseData?.courseWhyScholarAcad?.record_three,
+    {}
+  );
+  const whychooseusdata4 = safeJsonParse(
+    courseData?.courseWhyScholarAcad?.record_four,
+    {}
+  );
+  const whychooseusdata5 = safeJsonParse(
+    courseData?.courseWhyScholarAcad?.record_five,
+    {}
+  );
+  const whychooseusdata6 = safeJsonParse(
+    courseData?.courseWhyScholarAcad?.record_six,
+    {}
+  );
+  const whychooseusdata7 = safeJsonParse(
+    courseData?.courseWhyScholarAcad?.record_seven,
+    {}
+  );
+  const whychooseusdata8 = safeJsonParse(
+    courseData?.courseWhyScholarAcad?.record_eight,
+    {}
+  );
+  const whychooseusdata9 = safeJsonParse(
+    courseData?.courseWhyScholarAcad?.record_nine,
+    {}
+  );
 
-  const whychooseusdata1 = JSON.parse(
-    courseData?.courseWhyScholarAcad?.record_one || "{}",
-  );
-  const whychooseusdata2 = JSON.parse(
-    courseData?.courseWhyScholarAcad?.record_two || "{}",
-  );
-  const whychooseusdata3 = JSON.parse(
-    courseData?.courseWhyScholarAcad?.record_three || "{}",
-  );
-  const whychooseusdata4 = JSON.parse(
-    courseData?.courseWhyScholarAcad?.record_four || "{}",
-  );
-  const whychooseusdata5 = JSON.parse(
-    courseData?.courseWhyScholarAcad?.record_five || "{}",
-  );
-  const whychooseusdata6 = JSON.parse(
-    courseData?.courseWhyScholarAcad?.record_six || "{}",
-  );
-  const whychooseusdata7 = JSON.parse(
-    courseData?.courseWhyScholarAcad?.record_seven || "{}",
-  );
-  const whychooseusdata8 = JSON.parse(
-    courseData?.courseWhyScholarAcad?.record_eight || "{}",
-  );
-  const whychooseusdata9 = JSON.parse(
-    courseData?.courseWhyScholarAcad?.record_nine || "{}",
+  const parseRoadmapPoint = (val) => {
+    try {
+      const obj = typeof val === "string" ? JSON.parse(val) : val;
+      const heading = obj?.heading?.trim();
+      return heading && heading !== "NA" && heading !== "Na" && heading.toLowerCase() !== "no details available" ? obj : null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const hasRoadmap = Boolean(
+    courseData?.certificationPath && (
+      parseRoadmapPoint(courseData.certificationPath.pointer_one) ||
+      parseRoadmapPoint(courseData.certificationPath.pointer_two) ||
+      parseRoadmapPoint(courseData.certificationPath.pointer_three) ||
+      parseRoadmapPoint(courseData.certificationPath.pointer_four) ||
+      parseRoadmapPoint(courseData.certificationPath.pointer_five) ||
+      parseRoadmapPoint(courseData.certificationPath.pointer_six) ||
+      parseRoadmapPoint(courseData.certificationPath.pointer_seven)
+    )
   );
 
   //   const parseAndDecode = (data, fallback = "{}") => {
@@ -2681,8 +2750,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
     },
     {
       icon: <BsCheck2Circle />,
-      iconBg: "bg-blue-300",
-      contentBg: "bg-blue-100",
+      iconBg: "bg-purple-300", contentBg: "bg-purple-100",
     },
   ];
   const rating = courseData?.ratings?.[0];
@@ -2970,17 +3038,20 @@ function DynamicPage({ courseData: initialCourseData = null }) {
               >
                 What You’ll Learn
               </button>
-              <button
-                onClick={() => scrollToSection("Training Options")}
-                className={`px-6 py-3 border-b-2 transition cursor-pointer 
-              ${activeId === "Training Options"
-                    ? "border-purple-600 text-purple-600 font-semibold text-xs"
-                    : "border-transparent hover:text-purple-600 text-xs"
-                  }
-            `}
-              >
-                Training Options
-              </button>
+              {Array.isArray(courseData?.coursePrice) &&
+                courseData.coursePrice.length > 0 && (
+                  <button
+                    onClick={() => scrollToSection("Training Options")}
+                    className={`px-6 py-3 border-b-2 transition cursor-pointer 
+                  ${activeId === "Training Options"
+                        ? "border-purple-600 text-purple-600 font-semibold text-xs"
+                        : "border-transparent hover:text-purple-600 text-xs"
+                      }
+                `}
+                  >
+                    Training Options
+                  </button>
+                )}
               <button
                 onClick={() => scrollToSection("Contact")}
                 className={`px-6 py-3 border-b-2 transition cursor-pointer 
@@ -3005,17 +3076,19 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                   Schedule Courses
                 </button>
               )}
-              <button
-                onClick={() => scrollToSection("MSP Roadmap")}
-                className={`px-6 py-3 border-b-2 transition cursor-pointer 
-              ${activeId === "MSP Roadmap"
-                    ? "border-purple-600 text-purple-600 font-semibold text-xs"
-                    : "border-transparent hover:text-purple-600 text-xs"
-                  }
-            `}
-              >
-                Roadmap
-              </button>
+              {hasRoadmap && (
+                <button
+                  onClick={() => scrollToSection("MSP Roadmap")}
+                  className={`px-6 py-3 border-b-2 transition cursor-pointer 
+                ${activeId === "MSP Roadmap"
+                      ? "border-purple-600 text-purple-600 font-semibold text-xs"
+                      : "border-transparent hover:text-purple-600 text-xs"
+                    }
+              `}
+                >
+                  Roadmap
+                </button>
+              )}
               {courseData?.courseCurriculumFAQ?.length > 0 && (
                 <button
                   onClick={() => scrollToSection("FAQs")}
@@ -3045,7 +3118,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                 >
                   <Link
                     href="/"
-                    className="flex items-center gap-1 hover:text-blue-600 transition"
+                    className="flex items-center gap-1 hover:text-[#882CFB] transition"
                   >
                     <AiTwotoneHome className="text-[#2E318D]" />
                     Home
@@ -3053,7 +3126,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                   <FaAngleRight className="text-gray-400" />
                   <Link
                     href="/all-courses"
-                    className="hover:text-blue-600 transition"
+                    className="hover:text-[#882CFB] transition"
                   >
                     Courses
                   </Link>
@@ -3068,58 +3141,68 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                 </nav>
               </div>
               <div className="max-w-7xl mx-auto  my-5 grid lg:grid-cols-2  items-start z-10 ">
-                <div className="relative w-full max-w-[550px] border rounded-xl border-white bg-slate-800/40 overflow-hidden min-h-[220px] flex items-center justify-center">
+                <div className="relative w-full max-w-[550px] border border-gray-200/90 rounded-2xl bg-white shadow-md hover:shadow-lg transition-all overflow-hidden min-h-[240px] flex items-center justify-center p-3 group">
                   <img
                     src={normalizeImageUrl(
+                      courseData?.header_image ||
+                      courseData?.course?.header_image ||
                       courseData?.courseImage?.banner_image_path ||
                       courseData?.certificationImage?.image_path ||
-                      courseData?.dynamicCourseHeading?.header_image
+                      courseData?.dynamicCourseHeading?.header_image,
+                      url_title && url_title.toLowerCase().includes('prince2')
+                        ? '/assets/img/prince2.jpg'
+                        : '/assets/landingpage/courses/course1.jpg'
                     )}
-                    alt={courseData?.courseHeading?.title || "Course Image"}
+                    alt={courseData?.courseHeading?.title || courseData?.course_title || courseData?.course?.course_title || "Course Image"}
                     onError={(e) => {
-                      if (courseData?.certificationImage?.image_path) {
-                        e.currentTarget.src = normalizeImageUrl(courseData.certificationImage.image_path);
-                      } else {
-                        e.currentTarget.src = "/assets/landingpage/aboutus_bg.jpg";
-                      }
+                      e.currentTarget.src =
+                        url_title && url_title.toLowerCase().includes('prince2')
+                          ? '/assets/img/prince2.jpg'
+                          : '/assets/landingpage/courses/course1.jpg';
                     }}
                     className="
-                      rounded-md w-full h-auto object-cover
-                      opacity-0 scale-95 
-                      transition-all duration-700 ease-out
-                      [animation:fadeInZoom_0.7s_ease-out_forwards]
+                      rounded-xl w-full h-auto max-h-[320px] object-contain
+                      transition-transform duration-500 group-hover:scale-105
                     "
                   />
-
-                  <div
-                    className="absolute inset-0 rounded-xl pointer-events-none 
-                              bg-gradient-to-t from-black/60 to-transparent"
-                  ></div>
                 </div>
 
                 <div className="max-sm:mt-6">
-                  {courseData?.dynamicCourseHeading?.hone_tag && (
-                    <h1
-                      title={courseData?.dynamicCourseHeading?.hone_tag}
-                      className="heading"
-                    >
-                      {courseData?.dynamicCourseHeading?.hone_tag?.length > 200
-                        ? courseData?.dynamicCourseHeading?.hone_tag.slice(
-                          0,
-                          200,
-                        ) + "..."
-                        : courseData?.dynamicCourseHeading?.hone_tag ||
-                        "No Title"}
-                    </h1>
-                  )}
-                  <h2 className="mt-4 Sub_heading_black ">
-                    {courseData?.courseHeading?.course_description?.length > 200
-                      ? courseData?.courseHeading?.course_description.slice(
-                        0,
-                        200,
-                      ) + "..."
-                      : courseData?.courseHeading?.course_description || "Na"}
-                  </h2>
+                  {(() => {
+                    const resolvedTitle =
+                      courseData?.dynamicCourseHeading?.hone_tag ||
+                      courseData?.dynamicCourseHeading?.heading ||
+                      courseData?.courseHeading?.title ||
+                      courseData?.courseHeading?.name ||
+                      courseData?.course?.name ||
+                      (url_title ? url_title.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "Course");
+
+                    const resolvedDescription =
+                      courseData?.courseHeading?.course_description ||
+                      courseData?.dynamicCourseHeading?.description ||
+                      courseData?.course?.description ||
+                      "";
+
+                    return (
+                      <>
+                        <h1
+                          title={resolvedTitle}
+                          className="heading"
+                        >
+                          {resolvedTitle.length > 200
+                            ? resolvedTitle.slice(0, 200) + "..."
+                            : resolvedTitle}
+                        </h1>
+                        {resolvedDescription && resolvedDescription !== "Na" ? (
+                          <h2 className="mt-4 Sub_heading_black">
+                            {resolvedDescription.length > 200
+                              ? resolvedDescription.slice(0, 200) + "..."
+                              : resolvedDescription}
+                          </h2>
+                        ) : null}
+                      </>
+                    );
+                  })()}
 
                   {/* Ratings Section */}
                   <div className="flex items-center flex-wrap gap-4 mt-5">
@@ -3302,119 +3385,107 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                     )}
                 </section>
                 {/* Key Features Section */}
-                <section id="Key Features" className="bg-white py-5 max-sm:p-3">
-                  <div className="  ">
-                    <div className="flex justify-center items-center flex-col ">
+                {(() => {
+                  const validKeyFeatures = [
+                    { text: courseData?.keyfeatures?.record_one, icon: "/assets/landingpage/keyfeature/keyfeature_icon1.svg" },
+                    { text: courseData?.keyfeatures?.record_two, icon: "/assets/landingpage/keyfeature/keyfeature_icon2.svg" },
+                    { text: courseData?.keyfeatures?.record_three, icon: "/assets/landingpage/keyfeature/keyfeature_icon3.svg" },
+                    { text: courseData?.keyfeatures?.record_four, icon: "/assets/landingpage/keyfeature/keyfeature_icon4.svg" },
+                    { text: courseData?.keyfeatures?.record_five, icon: "/assets/landingpage/keyfeature/keyfeature_icon5.svg" },
+                    { text: courseData?.keyfeatures?.record_six, icon: "/assets/landingpage/keyfeature/keyfeature_icon6.svg" },
+                  ].filter(
+                    (item) =>
+                      item.text &&
+                      typeof item.text === "string" &&
+                      item.text.trim() !== "" &&
+                      item.text.trim().toLowerCase() !== "na" &&
+                      item.text.trim().toLowerCase() !== "no data"
+                  );
+
+                  const hasValidReadMore = (() => {
+                    const raw = courseData?.keyfeatures?.read_more;
+                    if (!raw || typeof raw !== "string") return false;
+                    const stripped = raw.replace(/<[^>]*>/g, "").trim().toLowerCase();
+                    return (
+                      stripped !== "" &&
+                      stripped !== "no data" &&
+                      stripped !== "na" &&
+                      stripped !== "&nbsp;"
+                    );
+                  })();
+
+                  if (validKeyFeatures.length === 0 && !hasValidReadMore) {
+                    return null;
+                  }
+
+                  return (
+                    <section id="Key Features" className="bg-white py-5 max-sm:p-3">
                       <div>
-                        {/* <RiGraduationCapFill className="text-[#2E318D] text-4xl rotate-350 ml-[-15px] mb-[-5px] " /> */}
-                        {/* <h2 className="font-bold text-xl text-[#2F328F] ">
-                          Key Features
-                        </h2> */}
-                      </div>
-                      {courseData?.allHeadline?.training_highlights && (
-                        <h2 className="heading max-w-[80%] m-auto  text-center">
-                          {courseData?.allHeadline?.training_highlights || "NA"}
-                        </h2>
-                      )}
-                    </div>
+                        {courseData?.allHeadline?.training_highlights && (
+                          <div className="flex justify-center items-center flex-col">
+                            <h2 className="heading max-w-[80%] m-auto text-center">
+                              {courseData.allHeadline.training_highlights}
+                            </h2>
+                          </div>
+                        )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mt-8">
-                      <div className=" flex items-start flex-col justify-center   rounded">
-                        <img
-                          src="/assets/landingpage/keyfeature/keyfeature_icon1.svg"
-                          alt="Keyfeature"
-                          className="h-12 w-auto object-contain"
-                        />
-                        <p className="text-start p-3 font-bold text-[#535353] text-[15px]">
-                          {courseData?.keyfeatures?.record_one || "NA"}
-                        </p>
-                      </div>
-                      <div className=" flex items-start flex-col justify-center  rounded">
-                        <img
-                          src="/assets/landingpage/keyfeature/keyfeature_icon2.svg"
-                          alt="Keyfeature"
-                          className="h-12 w-auto object-contain"
-                        />
-                        <p className="text-start p-3 font-bold text-[#535353] text-[15px]">
-                          {courseData?.keyfeatures?.record_two || "NA"}
-                        </p>
-                      </div>
-                      <div className=" flex items-start flex-col justify-center   rounded">
-                        <img
-                          src="/assets/landingpage/keyfeature/keyfeature_icon3.svg"
-                          alt="Keyfeature"
-                          className="h-12 w-auto object-contain"
-                        />
-                        <p className="text-start p-3 font-bold text-[#535353] text-[15px]">
-                          {courseData?.keyfeatures?.record_three || "NA"}
-                        </p>
-                      </div>
-                      <div className=" flex items-start flex-col justify-center   rounded">
-                        <img
-                          src="/assets/landingpage/keyfeature/keyfeature_icon4.svg"
-                          alt="Keyfeature"
-                          className="h-12 w-auto object-contain"
-                        />
-                        <p className="text-start p-3 font-bold text-[#535353] text-[15px]">
-                          {courseData?.keyfeatures?.record_four || "NA"}
-                        </p>
-                      </div>
-                      <div className="flex items-start flex-col justify-center   rounded">
-                        <img
-                          src="/assets/landingpage/keyfeature/keyfeature_icon5.svg"
-                          alt="Keyfeature"
-                          className="h-12 w-auto object-contain"
-                        />
-                        <p className="text-start p-3 font-bold text-[#535353] text-[15px]">
-                          {courseData?.keyfeatures?.record_five || "NA"}
-                        </p>
-                      </div>
-                      <div className="flex items-start flex-col justify-center   rounded">
-                        <img
-                          src="/assets/landingpage/keyfeature/keyfeature_icon6.svg"
-                          alt="Keyfeature"
-                          className="h-12 w-auto object-contain"
-                        />
-                        <p className="text-start p-3 font-bold text-[#535353] text-[15px]">
-                          {courseData?.keyfeatures?.record_six || "NA"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  {courseData?.keyfeatures?.read_more && (
-                    <div class="mt-3 ">
-                      <div className="flex justify-center">
-                        <button
-                          title="Read More"
-                          onClick={() => keyfeaturesetIsOpen(!keyfeatureisOpen)}
-                          className="text-blue-500 cursor-pointer hover:text-blue-700 transition"
-                        >
-                          {keyfeatureisOpen ? "Read Less" : "Read More"}
-                        </button>
+                        {validKeyFeatures.length > 0 && (
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+                            {validKeyFeatures.map((item, index) => (
+                              <div
+                                key={index}
+                                className="flex items-start flex-col justify-center rounded"
+                              >
+                                <img
+                                  src={item.icon}
+                                  alt="Keyfeature"
+                                  className="h-12 w-auto object-contain"
+                                />
+                                <p className="text-start p-3 font-bold text-[#535353] text-[15px]">
+                                  {item.text}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
-                      <div
-                        className={`overflow-hidden transition-all duration-500 ease-in-out ${keyfeatureisOpen
-                          ? "max-h-full opacity-100 mt-2"
-                          : "max-h-0 opacity-0"
-                          }`}
-                      >
-                        <div className="bg-gray-50 p-3 border rounded-md border-gray-200">
+                      {hasValidReadMore && (
+                        <div className="mt-4">
+                          <div className="flex justify-center">
+                            <button
+                              title="Read More"
+                              onClick={() => keyfeaturesetIsOpen(!keyfeatureisOpen)}
+                              className="text-purple-600 font-semibold cursor-pointer hover:text-purple-800 transition text-sm"
+                            >
+                              {keyfeatureisOpen ? "Read Less" : "Read More"}
+                            </button>
+                          </div>
+
                           <div
-                            className="summernote-content"
-                            dangerouslySetInnerHTML={{
-                              __html:
-                                courseData.keyfeatures.read_more || "No Data",
-                            }}
-                          />
+                            className={`overflow-hidden transition-all duration-500 ease-in-out ${
+                              keyfeatureisOpen
+                                ? "max-h-full opacity-100 mt-3"
+                                : "max-h-0 opacity-0"
+                            }`}
+                          >
+                            <div className="bg-[#FAF8FE] p-4 border rounded-xl border-purple-100">
+                              <div
+                                className="summernote-content text-sm text-gray-700"
+                                dangerouslySetInnerHTML={{
+                                  __html: courseData.keyfeatures.read_more,
+                                }}
+                              />
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  )}
-                </section>
+                      )}
+                    </section>
+                  );
+                })()}
                 {courseFaq?.length > 0 && (
                   <section
-                    className="bg-blue-50 border border-gray-300 rounded-md p-3"
+                    className="bg-[#FAF8FE] border border-purple-100 rounded-2xl p-5"
                   >
                     <h2 className="heading max-w-[80%] m-auto text-center">
                       Course FAQs
@@ -3487,7 +3558,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                               setOpenIndex(null);
                             }
                           }}
-                          className="text-blue-500 cursor-pointer hover:text-blue-700  transition"
+                          className="text-[#882CFB] cursor-pointer hover:text-[#7221D8]  transition"
                         >
                           {hasMoreCourseFaq ? "Read More" : "Read Less"}
                         </button>
@@ -3497,6 +3568,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                 )}
 
                 {/*  Why Choose Us Section */}
+                {Boolean(whychooseusdata1?.heading || whychooseusdata2?.heading || whychooseusdata3?.heading || whychooseusdata4?.heading) && (
                 <section id="Why Choose Us" className="py-5   max-sm:hidden ">
                   <div className="flex justify-center items-center flex-col ">
                     <div>
@@ -3946,6 +4018,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                     </div>
                   </div>
                 </section>
+                )}
                 {/* What You’ll Learn Section */}
                 {courseData?.allHeadline?.new_learning_objectives && (
                   <section
@@ -3956,19 +4029,19 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                       <div className="">
                         <div className="flex   flex-col ">
                           <div>
-                            {/* <RiGraduationCapFill className="text-[#2E318D] text-4xl rotate-350 ml-[-15px] mb-[-5px] " /> */}
-                            <h2 className="heading text-center md:max-w-[80%] m-auto">
-                              {courseData?.allHeadline
-                                ?.new_learning_objectives || "No Title"}
-                            </h2>
-                            <div
-                              className="summernote-content prose mt-3"
-                              dangerouslySetInnerHTML={{
-                                __html:
-                                  courseData?.whatyoulearn?.description ||
-                                  "No Details Available",
-                              }}
-                            ></div>
+                            {courseData?.allHeadline?.new_learning_objectives && (
+                              <h2 className="heading text-center md:max-w-[80%] m-auto">
+                                {courseData.allHeadline.new_learning_objectives}
+                              </h2>
+                            )}
+                            {courseData?.whatyoulearn?.description && (
+                              <div
+                                className="summernote-content prose mt-3"
+                                dangerouslySetInnerHTML={{
+                                  __html: courseData.whatyoulearn.description,
+                                }}
+                              ></div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -4041,7 +4114,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                       </div>
                       <div
                         className="absolute top-31 right-0
-                  bg-blue-500 text-white px-4 py-2 rounded-bl-[20px] rounded-tr-[20px] shadow w-[200px]"
+                  bg-[#882CFB] text-white px-4 py-2 rounded-bl-[20px] rounded-tr-[20px] shadow w-[200px]"
                       >
                         Item 3
                       </div>
@@ -4278,7 +4351,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
 
                           <button
                             onClick={toggleExpand}
-                            className="mt-3 flex items-center justify-center gap-2 text-blue-600 hover:text-blue-800 mx-auto transition-colors duration-300 cursor-pointer"
+                            className="mt-3 flex items-center justify-center gap-2 text-[#882CFB] hover:text-[#7221D8] mx-auto transition-colors duration-300 cursor-pointer"
                           >
                             {expanded ? (
                               <>
@@ -4315,17 +4388,17 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                       <div className="text-left text-white">
                         {courseData?.allHeadline?.eligibility && (
                           <h2 className="heading_white ">
-                            {courseData?.allHeadline?.eligibility || "Na"}
+                            {courseData.allHeadline.eligibility}
                           </h2>
                         )}
-                        <div
-                          className="summernote-content2 prose max-w-none mt-2 force-text-color"
-                          dangerouslySetInnerHTML={{
-                            __html:
-                              courseData?.courseDescription?.eligibility ||
-                              "No Details Available",
-                          }}
-                        ></div>
+                        {courseData?.courseDescription?.eligibility && (
+                          <div
+                            className="summernote-content2 prose max-w-none mt-2 force-text-color"
+                            dangerouslySetInnerHTML={{
+                              __html: courseData.courseDescription.eligibility,
+                            }}
+                          ></div>
+                        )}
 
                         <div className=" mt-2">
                           {Array?.isArray(certificatelist) &&
@@ -4887,20 +4960,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                       </div>
                     </div>
                   </section>
-                ) : (
-                  <div
-                    id="Training Options"
-                    className="md:col-span-10 flex flex-col items-center justify-center mt-5 bg-gray-50 border border-dashed border-gray-300 rounded-lg p-3 text-center "
-                  >
-                    <p className="text-gray-600 text-lg font-medium">
-                      No Course Plans Available
-                    </p>
-                    <p className="text-gray-500 text-sm mt-1">
-                      Please check back later or contact support for more
-                      information.
-                    </p>
-                  </div>
-                )}
+                ) : null}
 
                 {/* Career Transformations Section */}
                 <section className="max-sm:p-3 py-5">
@@ -5018,7 +5078,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                                 className={`py-2 rounded-lg transition cursor-pointer
                                 ${isPast
                                     ? "text-gray-300 cursor-not-allowed"
-                                    : "hover:bg-blue-100"
+                                    : "hover:bg-purple-50"
                                   }
                                 ${isSelected ? "bg-[#4347CA] text-white " : ""}
                               `}
@@ -5036,7 +5096,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                           <select
                             value={selectedTime}
                             onChange={(e) => setSelectedTime(e.target.value)}
-                            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring focus:border-blue-400 cursor-pointer"
+                            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring focus:border-[#882CFB] cursor-pointer"
                           >
                             {timeSlots.map((time) => (
                               <option key={time} value={time}>
@@ -5518,445 +5578,111 @@ function DynamicPage({ courseData: initialCourseData = null }) {
               </div> */}
 
                 {/* MSP Roadmap Section */}
-                <section id="MSP Roadmap" className="max-sm:p-3  py-5">
-                  <div className=" ">
-                    <div className="flex justify-center items-center flex-col ">
-                      <div>
-                        {/* <RiGraduationCapFill className="text-[#2E318D] text-4xl rotate-350 ml-[-15px] mb-[-5px] " /> */}
-                        {/* <h3 className="font-bold text-xl text-[#2E318D] ">
-                          Roadmap
-                        </h3> */}
+                {hasRoadmap && (
+                  <section id="MSP Roadmap" className="max-sm:p-3 py-5">
+                    <div>
+                      <div className="flex justify-center items-center flex-col">
+                        {courseData?.allHeadline?.path && (
+                          <h2 className="heading md:max-w-[80%] text-center">
+                            {courseData.allHeadline.path}
+                          </h2>
+                        )}
                       </div>
-                      {courseData?.allHeadline?.path && (
-                        <h2 className="heading md:max-w-[80%]  text-center">
-                          {courseData?.allHeadline?.path || "NA"}
-                        </h2>
-                      )}
-                    </div>
-                    <div className="mt-8">
-                      <div className="roadmap">
-                        {/* <div className="point-index">6</div> */}
-                        <div className="point">
-                          <div className="relative bg-[#FFD9D9] w-full grid grid-cols-[10%_90%] gap-3 rounded-2xl shadow-md py-8 px-4 items-center overflow-hidden">
-                            <div>
-                              <img
-                                src="/assets/landingpage/msp_three_weekicon/studying_exam.svg"
-                                alt=""
-                              />
-                              {/* <Lottie
-                                animationData={DynamicPageicon1}
-                                loop={true}
-                                autoplay={true}
-                                style={{ width: 100, height: 100 }}
-                              /> */}
-                            </div>
-                            <div>
-                              <h2 className="text-2xl font-black mb-3">
-                                {(() => {
-                                  try {
-                                    return (
-                                      JSON.parse(
-                                        courseData?.certificationPath
-                                          ?.pointer_one || "{}",
-                                      )?.heading || "NA"
-                                    );
-                                  } catch (e) {
-                                    return "NA";
-                                  }
-                                })()}
-                              </h2>
+                      <div className="mt-8">
+                        <div className="roadmap">
+                          {(() => {
+                            const rawPoints = [
+                              {
+                                data: parseRoadmapPoint(courseData?.certificationPath?.pointer_one),
+                                bg: "#FFD9D9",
+                                badge: "W1",
+                                badgeColor: "#FFB3B3",
+                                icon: "/assets/landingpage/msp_three_weekicon/studying_exam.svg",
+                              },
+                              {
+                                data: parseRoadmapPoint(courseData?.certificationPath?.pointer_two),
+                                bg: "#FFD9D9",
+                                badge: "W1",
+                                badgeColor: "#FFB3B3",
+                                icon: "/assets/landingpage/msp_three_weekicon/write.svg",
+                              },
+                              {
+                                data: parseRoadmapPoint(courseData?.certificationPath?.pointer_three),
+                                bg: "#FDF2CD",
+                                badge: "W2",
+                                badgeColor: "#F9DF8D",
+                                icon: "/assets/landingpage/msp_three_weekicon/plan.svg",
+                              },
+                              {
+                                data: parseRoadmapPoint(courseData?.certificationPath?.pointer_four),
+                                bg: "#FDF2CD",
+                                badge: "W2",
+                                badgeColor: "#F9DF8D",
+                                icon: "/assets/landingpage/msp_three_weekicon/practise_exam.svg",
+                              },
+                              {
+                                data: parseRoadmapPoint(courseData?.certificationPath?.pointer_five),
+                                bg: "#E2F0CC",
+                                badge: "W3",
+                                badgeColor: "#9DC75C",
+                                icon: "/assets/landingpage/msp_three_weekicon/bulb.svg",
+                              },
+                              {
+                                data: parseRoadmapPoint(courseData?.certificationPath?.pointer_six),
+                                bg: "#E2F0CC",
+                                badge: "W3",
+                                badgeColor: "#9DC75C",
+                                icon: "/assets/landingpage/msp_three_weekicon/test_exam.svg",
+                              },
+                              {
+                                data: parseRoadmapPoint(courseData?.certificationPath?.pointer_seven),
+                                bg: "#E2F0CC",
+                                badge: "W3",
+                                badgeColor: "#9DC75C",
+                                icon: "/assets/landingpage/msp_three_weekicon/teacher.svg",
+                              },
+                            ].filter((p) => p.data && p.data.heading);
 
-                              <p className="text-[#747474]">
-                                {(() => {
-                                  try {
-                                    return (
-                                      JSON.parse(
-                                        courseData?.certificationPath
-                                          ?.pointer_one || "{}",
-                                      )?.text || "NA"
-                                    );
-                                  } catch (e) {
-                                    return "NA";
-                                  }
-                                })()}
-                              </p>
-                            </div>
-
-                            {/* Circle inside bottom edge */}
-                            <div className="absolute bottom-5 -right-2 translate-y-1/2">
-                              <div className="bg-white rounded-full w-[80px] h-[80px] flex items-center justify-center shadow-md">
-                                <h2 className="text-[#FFB3B3] font-bold text-2xl">
-                                  W1
-                                </h2>
+                            return rawPoints.map((item, idx) => (
+                              <div key={idx} className="point">
+                                <div
+                                  className="relative w-full grid grid-cols-[10%_90%] gap-3 rounded-2xl shadow-md py-8 px-4 items-center overflow-hidden"
+                                  style={{ backgroundColor: item.bg }}
+                                >
+                                  <div>
+                                    <img
+                                      src={item.icon}
+                                      alt={item.data.heading}
+                                      className="h-10 w-auto object-contain"
+                                    />
+                                  </div>
+                                  <div>
+                                    <h2 className="text-2xl font-black mb-3">
+                                      {item.data.heading}
+                                    </h2>
+                                    <p className="text-[#747474]">
+                                      {item.data.text || ""}
+                                    </p>
+                                  </div>
+                                  <div className="absolute bottom-5 -right-2 translate-y-1/2">
+                                    <div className="bg-white rounded-full w-[80px] h-[80px] flex items-center justify-center shadow-md">
+                                      <h2
+                                        className="font-bold text-2xl"
+                                        style={{ color: item.badgeColor }}
+                                      >
+                                        {item.badge}
+                                      </h2>
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="point">
-                          <div className="relative bg-[#FFD9D9] w-full grid grid-cols-[10%_90%] gap-3 rounded-2xl shadow-md py-8 px-4 items-center overflow-hidden">
-                            <div>
-                              <img
-                                src="/assets/landingpage/msp_three_weekicon/write.svg"
-                                alt=""
-                              />
-                              {/* <Lottie
-                          animationData={MSPPractitionericon1}
-                          loop={true}
-                          autoplay={true}
-                          style={{ width: 100, height: 100 }}
-                        /> */}
-                            </div>
-                            <div>
-                              <h2 className="text-2xl font-black mb-3">
-                                {(() => {
-                                  try {
-                                    return (
-                                      JSON.parse(
-                                        courseData?.certificationPath
-                                          ?.pointer_two || "{}",
-                                      )?.heading || "NA"
-                                    );
-                                  } catch (e) {
-                                    return "NA";
-                                  }
-                                })()}
-                              </h2>
-
-                              <p className="text-[#747474]">
-                                {(() => {
-                                  try {
-                                    return (
-                                      JSON.parse(
-                                        courseData?.certificationPath
-                                          ?.pointer_two || "{}",
-                                      )?.text || "NA"
-                                    );
-                                  } catch (e) {
-                                    return "NA";
-                                  }
-                                })()}
-                              </p>
-                            </div>
-                            {/* Circle inside bottom edge */}
-                            <div className="absolute bottom-5 -right-2 translate-y-1/2">
-                              <div className="bg-white rounded-full w-[80px] h-[80px] flex items-center justify-center shadow-md">
-                                <h2 className="text-[#FFB3B3] font-bold text-2xl">
-                                  W1
-                                </h2>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="point">
-                          <div className="relative bg-[#FDF2CD] w-full grid grid-cols-[10%_90%] gap-3 rounded-2xl shadow-md py-8 px-4 items-center overflow-hidden">
-                            <div>
-                              <img
-                                src="/assets/landingpage/msp_three_weekicon/plan.svg"
-                                alt=""
-                              />
-                              {/* <Lottie
-                          animationData={MSPPractitionericon1}
-                          loop={true}
-                          autoplay={true}
-                          style={{ width: 100, height: 100 }}
-                        /> */}
-                            </div>
-                            <div>
-                              <h2 className="text-2xl font-black mb-3">
-                                {(() => {
-                                  try {
-                                    return (
-                                      JSON.parse(
-                                        courseData?.certificationPath
-                                          ?.pointer_three || "{}",
-                                      )?.heading || "NA"
-                                    );
-                                  } catch (e) {
-                                    return "NA";
-                                  }
-                                })()}
-                              </h2>
-
-                              <p className="text-[#747474]">
-                                {(() => {
-                                  try {
-                                    return (
-                                      JSON.parse(
-                                        courseData?.certificationPath
-                                          ?.pointer_three || "{}",
-                                      )?.text || "NA"
-                                    );
-                                  } catch (e) {
-                                    return "NA";
-                                  }
-                                })()}
-                              </p>
-                            </div>
-                            {/* Circle inside bottom edge */}
-                            <div className="absolute bottom-5 -right-2 translate-y-1/2">
-                              <div className="bg-white rounded-full w-[80px] h-[80px] flex items-center justify-center shadow-md">
-                                <h2 className="text-[#F9DF8D] font-bold text-2xl">
-                                  W2
-                                </h2>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="point">
-                          <div className="relative bg-[#FDF2CD] w-full grid grid-cols-[10%_90%] gap-3 rounded-2xl shadow-md py-8 px-4 items-center overflow-hidden">
-                            <div>
-                              <img
-                                src="/assets/landingpage/msp_three_weekicon/group.svg"
-                                alt=""
-                              />
-                              {/* <Lottie
-                          animationData={MSPPractitionericon1}
-                          loop={true}
-                          autoplay={true}
-                          style={{ width: 100, height: 100 }}
-                        /> */}
-                            </div>
-                            <div>
-                              <h2 className="text-2xl font-black mb-3">
-                                {(() => {
-                                  try {
-                                    return (
-                                      JSON.parse(
-                                        courseData?.certificationPath
-                                          ?.pointer_four || "{}",
-                                      )?.heading || "NA"
-                                    );
-                                  } catch (e) {
-                                    return "NA";
-                                  }
-                                })()}
-                              </h2>
-
-                              <p className="text-[#747474]">
-                                {(() => {
-                                  try {
-                                    return (
-                                      JSON.parse(
-                                        courseData?.certificationPath
-                                          ?.pointer_four || "{}",
-                                      )?.text || "NA"
-                                    );
-                                  } catch (e) {
-                                    return "NA";
-                                  }
-                                })()}
-                              </p>
-                            </div>
-                            {/* Circle inside bottom edge */}
-                            <div className="absolute bottom-5 -right-2 translate-y-1/2">
-                              <div className="bg-white rounded-full w-[80px] h-[80px] flex items-center justify-center shadow-md">
-                                <h2 className="text-[#F9DF8D] font-bold text-2xl">
-                                  W2
-                                </h2>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="point">
-                          <div className="relative bg-[#E2F0CC] w-full grid grid-cols-[10%_90%] gap-3 rounded-2xl shadow-md py-8 px-4 items-center overflow-hidden">
-                            <div>
-                              <img
-                                src="/assets/landingpage/msp_three_weekicon/bulb.svg"
-                                alt=""
-                              />
-                              {/* <Lottie
-                          animationData={MSPPractitionericon1}
-                          loop={true}
-                          autoplay={true}
-                          style={{ width: 100, height: 100 }}
-                        /> */}
-                            </div>
-                            <div>
-                              <h2 className="text-2xl font-black mb-3">
-                                {(() => {
-                                  try {
-                                    return (
-                                      JSON.parse(
-                                        courseData?.certificationPath
-                                          ?.pointer_five || "{}",
-                                      )?.heading || "NA"
-                                    );
-                                  } catch (e) {
-                                    return "NA";
-                                  }
-                                })()}
-                              </h2>
-
-                              <p className="text-[#747474]">
-                                {(() => {
-                                  try {
-                                    return (
-                                      JSON.parse(
-                                        courseData?.certificationPath
-                                          ?.pointer_five || "{}",
-                                      )?.text || "NA"
-                                    );
-                                  } catch (e) {
-                                    return "NA";
-                                  }
-                                })()}
-                              </p>
-                            </div>
-                            {/* Circle inside bottom edge */}
-                            <div className="absolute bottom-5 -right-2 translate-y-1/2">
-                              <div className="bg-white rounded-full w-[80px] h-[80px] flex items-center justify-center shadow-md">
-                                <h2 className="text-[#9DC75C] font-bold text-2xl">
-                                  W3
-                                </h2>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="point">
-                          <div className="relative bg-[#E2F0CC] w-full grid grid-cols-[10%_90%] gap-3 rounded-2xl shadow-md py-8 px-4 items-center overflow-hidden">
-                            <div>
-                              <img
-                                src="/assets/landingpage/msp_three_weekicon/test_exam.svg"
-                                alt=""
-                              />
-                              {/* <Lottie
-                          animationData={MSPPractitionericon1}
-                          loop={true}
-                          autoplay={true}
-                          style={{ width: 100, height: 100 }}
-                        /> */}
-                            </div>
-                            <div>
-                              <h2 className="text-2xl font-black mb-3">
-                                {(() => {
-                                  try {
-                                    return (
-                                      JSON.parse(
-                                        courseData?.certificationPath
-                                          ?.pointer_six || "{}",
-                                      )?.heading || "NA"
-                                    );
-                                  } catch (e) {
-                                    return "NA";
-                                  }
-                                })()}
-                              </h2>
-
-                              <p className="text-[#747474]">
-                                {(() => {
-                                  try {
-                                    return (
-                                      JSON.parse(
-                                        courseData?.certificationPath
-                                          ?.pointer_six || "{}",
-                                      )?.text || "NA"
-                                    );
-                                  } catch (e) {
-                                    return "NA";
-                                  }
-                                })()}
-                              </p>
-                            </div>
-                            {/* Circle inside bottom edge */}
-                            <div className="absolute bottom-5 -right-2 translate-y-1/2">
-                              <div className="bg-white rounded-full w-[80px] h-[80px] flex items-center justify-center shadow-md">
-                                <h2 className="text-[#9DC75C] font-bold text-2xl">
-                                  W3
-                                </h2>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="point">
-                          <div className="relative bg-[#E2F0CC] w-full grid grid-cols-[10%_90%] gap-3 rounded-2xl shadow-md py-8 px-4 items-center overflow-hidden">
-                            <div>
-                              <img
-                                src="/assets/landingpage/msp_three_weekicon/teacher.svg"
-                                alt=""
-                              />
-                              {/* <Lottie
-                          animationData={MSPPractitionericon1}
-                          loop={true}
-                          autoplay={true}
-                          style={{ width: 100, height: 100 }}
-                        /> */}
-                            </div>
-                            <div>
-                              <h2 className="text-2xl font-black mb-3">
-                                {(() => {
-                                  try {
-                                    return (
-                                      JSON.parse(
-                                        courseData?.certificationPath
-                                          ?.pointer_seven || "{}",
-                                      )?.heading || "NA"
-                                    );
-                                  } catch (e) {
-                                    return "NA";
-                                  }
-                                })()}
-                              </h2>
-
-                              <p className="text-[#747474]">
-                                {(() => {
-                                  try {
-                                    return (
-                                      JSON.parse(
-                                        courseData?.certificationPath
-                                          ?.pointer_seven || "{}",
-                                      )?.text || "NA"
-                                    );
-                                  } catch (e) {
-                                    return "NA";
-                                  }
-                                })()}
-                              </p>
-                            </div>
-                            {/* Circle inside bottom edge */}
-                            <div className="absolute bottom-5 -right-2 translate-y-1/2">
-                              <div className="bg-white rounded-full w-[80px] h-[80px] flex items-center justify-center shadow-md">
-                                <h2 className="text-[#9DC75C] font-bold text-2xl">
-                                  W3
-                                </h2>
-                              </div>
-                            </div>
-                          </div>
+                            ));
+                          })()}
                         </div>
                       </div>
                     </div>
-                    {/* Floating Toggle Button */}
-                    {/* <button
-                  onClick={() => setOpen(!open)}
-                  className="fixed right-0 top-1/2 -translate-y-1/2 bg-blue-600 text-white px-3 py-2 rounded-l-lg shadow-lg z-50"
-                >
-                  {open ? "Close" : "Open"}
-                </button>
-
-                <section
-                  className={`grid gap-4 transition-all duration-500 min-h-screen ${
-                    open ? "grid-cols-[70%_30%]" : "grid-cols-1"
-                  }`}
-                >
-                  <div className="bg-red-200 p-4">
-                    sd
-                  </div>
-
-                  {open && (
-                    <div className="bg-blue-200 p-2">
-                      <div className="bg-white p-4 rounded-xl shadow border">
-                        <h3 className="text-lg font-semibold mb-2">Latest Course</h3>
-                        <p className="text-sm text-gray-600 mb-3">
-                          Learn full-stack development with hands-on projects.
-                        </p>
-                        <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm">
-                          View Course
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </section> */}
-                  </div>
-                </section>
+                  </section>
+                )}
                 {courseData?.courseInstructor?.length > 0 && (
                   <div className="max-sm:p-3 bg-[#F7F3FF] border border-gray-200 pb-2 pt-6 px-3 rounded-md">
                     <h2 className="heading max-w-[80%] mx-auto text-center ">
@@ -6113,7 +5839,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                               <div class="flex justify-end">
                                 <button
                                   onClick={() => setSelectedTrainer(trainer)}
-                                  className="mt-3 text-sm font-medium text-[#2563eb] hover:text-blue-600 flex gap-1 items-center  cursor-pointer"
+                                  className="mt-3 text-sm font-medium text-[#882CFB] hover:text-[#7221D8] flex gap-1 items-center  cursor-pointer"
                                 >
                                   Explore <MdOutlineExplore />
 
@@ -6133,7 +5859,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                                     <IoCloseOutline />
                                   </button>
                                   {/* Header */}
-                                  <div className="p-4  text-center border-b border-gray-300 bg-gradient-to-br from-blue-400 to-blue-50 rounded-xl">
+                                  <div className="p-4  text-center border-b border-gray-300 bg-gradient-to-br from-[#882CFB]/25 to-[#FAF8FE] rounded-xl">
                                     <div class="flex gap-2 ">
                                       <div class="bg-[#882CFB] text-white w-16 h-16 rounded-full flex items-center justify-center">
                                         {trainer?.image ? (
@@ -6681,7 +6407,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                                   onClick={() =>
                                     window.open(video?.video_url, "_blank")
                                   }
-                                  className="bg-[#882CFB] cursor-pointer hover:bg-blue-600 text-white w-full mt-4 py-2 rounded-lg font-medium"
+                                  className="bg-[#882CFB] cursor-pointer hover:bg-[#7221D8] text-white w-full mt-4 py-2 rounded-lg font-medium"
                                 >
                                   Watch Now
                                 </button>
@@ -6867,7 +6593,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                           <span className="text-lg font-medium whitespace-nowrap text-left">
                             {item}
                           </span>
-                          <FaCheckCircle className="text-blue-500 text-2xl" />
+                          <FaCheckCircle className="text-[#882CFB] text-2xl" />
                         </div>
                       ))}
                     </div>
@@ -6878,7 +6604,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                         "Project Portfolio Manager",
                       ].map((item, i) => (
                         <div key={i} className="flex items-start justify-start gap-3">
-                          <FaCheckCircle className="text-blue-500 text-2xl" />
+                          <FaCheckCircle className="text-[#882CFB] text-2xl" />
                           <span className="text-lg font-medium whitespace-nowrap">
                             {item}
                           </span>
@@ -6923,7 +6649,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                                   .trim()
                                   .replace(/\s+/g, "-")}`,
                               }}
-                              className="flex gap-2 items-center text-md  transition hover:underline hover:text-blue-400"
+                              className="flex gap-2 items-center text-md  transition hover:underline hover:text-[#882CFB]"
                             >
                               <TfiLocationPin className="" />
                               <span>{state?.name || "NA"}</span>
@@ -6937,7 +6663,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                                 href={{
                                   pathname: `/${url_title}/${state?.url}`,
                                 }}
-                                className="flex gap-2 items-center text-md transition hover:underline hover:text-blue-400"
+                                className="flex gap-2 items-center text-md transition hover:underline hover:text-[#882CFB]"
                               >
                                 <TfiLocationPin />
                                 <span>{state?.name || "NA"}</span>
@@ -6954,7 +6680,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                                   .trim()
                                   .replace(/\s+/g, "-")}`,
                               }}
-                              className="flex gap-2 items-center text-md  transition hover:underline hover:text-blue-400"
+                              className="flex gap-2 items-center text-md  transition hover:underline hover:text-[#882CFB]"
                             >
                               <TfiLocationPin className="" />
                               <span>{city?.name || "NA"}</span>
@@ -6975,7 +6701,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                                 href={{
                                   pathname: `/${url_title}/${cityUrl}`,
                                 }}
-                                className="flex gap-2 items-center text-md transition hover:underline hover:text-blue-400"
+                                className="flex gap-2 items-center text-md transition hover:underline hover:text-[#882CFB]"
                               >
                                 <TfiLocationPin />
                                 <span>{city?.name || "NA"}</span>
@@ -7020,6 +6746,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                 </section>
 
                 {/* FAQ Section */}
+                {pmpcertificatetabs && pmpcertificatetabs.length > 0 && (
                 <section id="FAQs" className="">
                   <section className="pb-7 max-sm:p-3">
                     <div className="flex justify-center mb-3 ">
@@ -7033,6 +6760,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                     </div>
                   </section>
                 </section>
+                )}
 
                 {/* Contact Advisor card Section */}
                 <section className="py-2 max-sm:p-3">
@@ -7102,7 +6830,7 @@ function DynamicPage({ courseData: initialCourseData = null }) {
                               </div>
 
                               <div
-                                className="truncate cursor-pointer text-blue-600 hover:underline"
+                                className="truncate cursor-pointer text-[#882CFB] hover:underline"
                                 onClick={() => openModal(item)}
                               >
                                 {item?.job_description}
@@ -7483,10 +7211,49 @@ export async function getServerSideProps({ req, params }) {
     "certification-guide",
   ];
 
-  const matchedSupportPage =
+  const isCountryPrefix =
+    slug.length >= 2 && slug[0]?.length === 2;
+  const active_country = isCountryPrefix ? slug[0] : "in";
+  const url_title = isCountryPrefix
+    ? slug[1]
+    : slug.length >= 1
+    ? slug[0]
+    : null;
+  const candidateSubSlug =
     quizIdx === -1
-      ? slug.find((s) => SUPPORT_PAGE_SLUGS.includes(s?.toLowerCase()))?.toLowerCase() || null
+      ? (isCountryPrefix ? slug[2] : slug[1])?.toLowerCase() || null
       : null;
+
+  let matchedSupportPage =
+    candidateSubSlug && SUPPORT_PAGE_SLUGS.includes(candidateSubSlug)
+      ? candidateSubSlug
+      : null;
+  let customSupportData = null;
+
+  if (!matchedSupportPage && url_title && candidateSubSlug) {
+    try {
+      const probeRes = await fetch(
+        `${API_BASE_URL}/api/courses/${url_title}/support/${candidateSubSlug}`,
+        {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        }
+      );
+      if (probeRes.ok) {
+        const probeJson = await probeRes.json();
+        if (probeJson?.status && probeJson?.data) {
+          matchedSupportPage = candidateSubSlug;
+          customSupportData = probeJson.data;
+        }
+      }
+    } catch (e) {
+      // not a support page, continue
+    }
+  }
+
   const isSyllabus = matchedSupportPage === "syllabus";
   const isNotes = matchedSupportPage === "notes";
   const isSupportPage = Boolean(matchedSupportPage);
@@ -7506,25 +7273,49 @@ export async function getServerSideProps({ req, params }) {
   const filteredSlug = slug.filter(
     (s, idx) =>
       !SUPPORT_PAGE_SLUGS.includes(s?.toLowerCase()) &&
+      (!matchedSupportPage || s?.toLowerCase() !== matchedSupportPage.toLowerCase()) &&
       !["quizzes", "quiz", "quizz"].includes(s?.toLowerCase()) &&
       (!isQuizDetail && !isQuestionsScreen ? true : idx !== quizIdx + 1) &&
       (!isQuestionsScreen ? true : idx !== quizIdx + 2)
   );
 
-  const isCountryPrefix =
-    filteredSlug.length >= 2 && filteredSlug[0]?.length === 2;
-  const active_country = isCountryPrefix ? filteredSlug[0] : "in";
-  const url_title = isCountryPrefix
-    ? filteredSlug[1]
-    : filteredSlug.length >= 1
-    ? filteredSlug[0]
-    : null;
   const active_state = isCountryPrefix
     ? filteredSlug[2] || null
     : filteredSlug[1] || null;
 
   const protocol = req.headers["x-forwarded-proto"] || "http";
   const pageUrl = `${protocol}://${req.headers.host}${req.url}`;
+
+  if (customSupportData) {
+    const seoData = customSupportData?.seo || {};
+    const supportPage = customSupportData?.support_page || {};
+    const course = customSupportData?.course || {};
+    const pageLabel = matchedSupportPage
+      .split("-")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+    const metaTitle =
+      seoData?.title ||
+      supportPage?.title ||
+      `${course?.name || url_title} ${pageLabel} | ScholarAcad`;
+    const metaDescription =
+      seoData?.description ||
+      `Explore ${pageLabel.toLowerCase()} and details for ${course?.name || url_title}.`;
+
+    return {
+      props: {
+        title: metaTitle,
+        description: metaDescription,
+        keywords: null,
+        ogTitle: metaTitle,
+        ogDescription: metaDescription,
+        ogUrl: pageUrl,
+        courseData: customSupportData,
+        isSupportPage: true,
+        matchedSupportPage: matchedSupportPage,
+      },
+    };
+  }
 
   if (isQuestionsScreen && url_title && quiz_slug) {
     try {
@@ -7654,7 +7445,7 @@ export async function getServerSideProps({ req, params }) {
         method: "GET",
         headers: {
           Accept: "application/json",
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
 
@@ -7666,7 +7457,7 @@ export async function getServerSideProps({ req, params }) {
             method: "GET",
             headers: {
               Accept: "application/json",
-              Authorization: `Bearer ${token}`,
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
           }
         );
@@ -7679,7 +7470,7 @@ export async function getServerSideProps({ req, params }) {
               method: "GET",
               headers: {
                 Accept: "application/json",
-                Authorization: `Bearer ${token}`,
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
               },
             }
           );
@@ -7713,6 +7504,35 @@ export async function getServerSideProps({ req, params }) {
         seoData?.description ||
         `Explore ${pageLabel.toLowerCase()} and details for ${course?.name || url_title}.`;
 
+      // Enrich support page with core course data (including header_image) if available
+      if (url_title) {
+        try {
+          const courseRes = await fetch(`${API_BASE_URL}/course/view-course`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({
+              course_id: url_title,
+              country_id: active_country,
+            }),
+          });
+          if (courseRes.ok) {
+            const courseJson = await courseRes.json();
+            if (courseJson?.data) {
+              json.data.course = { ...(json?.data?.course || {}), ...courseJson.data };
+              if (!json.data.header_image && courseJson.data.header_image) {
+                json.data.header_image = courseJson.data.header_image;
+              }
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+
       return {
         props: {
           title: metaTitle,
@@ -7722,6 +7542,8 @@ export async function getServerSideProps({ req, params }) {
           ogDescription: metaDescription,
           ogUrl: pageUrl,
           courseData: json?.data || null,
+          isSupportPage: true,
+          matchedSupportPage: matchedSupportPage,
         },
       };
     } catch (e) {
@@ -7730,11 +7552,36 @@ export async function getServerSideProps({ req, params }) {
   }
 
   try {
+    let courseInfo = null;
+    if (url_title) {
+      try {
+        const courseRes = await fetch(`${API_BASE_URL}/course/view-course`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            course_id: url_title,
+            country_id: active_country,
+            state_id: active_state || null,
+          }),
+        });
+        if (courseRes.ok) {
+          const courseJson = await courseRes.json();
+          courseInfo = courseJson?.data || null;
+        }
+      } catch (e) {
+        // Continue if view-course is not reachable
+      }
+    }
+
     const res = await fetch(`${API_BASE_URL}${APIENDPOINTS.DYNAMIC_PAGE}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify(
         isNotes
@@ -7751,12 +7598,34 @@ export async function getServerSideProps({ req, params }) {
             }
       ),
     });
+    if (!res.ok) {
+      if (candidateSubSlug) return { notFound: true };
+    }
     const json = await res.json();
     const data = json?.data?.dynamicCourseHeading || {};
-    const metaTitle = data?.meta_title || null;
+    if (!data?.id && !data?.course_title && !data?.heading && !courseInfo && candidateSubSlug) {
+      return { notFound: true };
+    }
+    const metaTitle =
+      data?.meta_title ||
+      courseInfo?.page_title ||
+      courseInfo?.course_title ||
+      null;
     const metaDescription =
-      data?.metaDescription || data?.meta_description || null;
-    const metaKeywords = data?.meta_keywords || null;
+      data?.metaDescription ||
+      data?.meta_description ||
+      courseInfo?.meta_description ||
+      courseInfo?.short_description ||
+      null;
+    const metaKeywords = data?.meta_keywords || courseInfo?.meta_keywords || null;
+
+    const mergedData = {
+      ...(json?.data || {}),
+      course: courseInfo || json?.data?.course || null,
+      header_image: courseInfo?.header_image || json?.data?.header_image || null,
+      course_title: courseInfo?.course_title || json?.data?.course_title || null,
+      short_description: courseInfo?.short_description || json?.data?.short_description || null,
+    };
 
     return {
       props: {
@@ -7766,10 +7635,11 @@ export async function getServerSideProps({ req, params }) {
         ogTitle: metaTitle,
         ogDescription: metaDescription,
         ogUrl: pageUrl,
-        courseData: json?.data || null,
+        courseData: mergedData,
       },
     };
   } catch (e) {
+    if (candidateSubSlug) return { notFound: true };
     return {
       props: {
         title: null,

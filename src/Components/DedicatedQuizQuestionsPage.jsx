@@ -12,6 +12,7 @@ import {
   FaArrowLeft,
   FaArrowRight,
   FaCheckCircle,
+  FaTimesCircle,
   FaExclamationTriangle,
   FaRegCircle,
   FaFlag,
@@ -23,6 +24,16 @@ import {
   FaTimes,
   FaChartPie,
   FaListOl,
+  FaSearchPlus,
+  FaHighlighter,
+  FaEraser,
+  FaStrikethrough,
+  FaBookOpen,
+  FaChevronDown,
+  FaChevronUp,
+  FaLightbulb,
+  FaExchangeAlt,
+  FaInfoCircle,
 } from "react-icons/fa";
 import { IoCloseOutline } from "react-icons/io5";
 import {
@@ -58,6 +69,18 @@ export default function DedicatedQuizQuestionsPage({
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [timeSpentSeconds, setTimeSpentSeconds] = useState(0);
+
+  // Interactive Tools State
+  // 1. Strike-Off options: { [questionId]: { [optionId]: boolean } }
+  const [struckOptions, setStruckOptions] = useState({});
+  // 2. Highlighting text: { [questionId]: string[] }
+  const [highlightedSnippets, setHighlightedSnippets] = useState({});
+  // 3. Image Lightbox Zoom modal
+  const [zoomImage, setZoomImage] = useState(null);
+  // 4. Case Study Collapse/Expand toggle
+  const [isCaseStudyOpen, setIsCaseStudyOpen] = useState(true);
+  // 5. Matching Question Answers: { [questionId]: { [pairId]: targetValue } }
+  const [matchingAnswers, setMatchingAnswers] = useState({});
 
   const courseSlug = useMemo(() => {
     return (
@@ -140,7 +163,7 @@ export default function DedicatedQuizQuestionsPage({
     return () => {
       isMounted = false;
     };
-  }, [courseSlug, quizSlug, token, initialData]);
+  }, [courseSlug, quizSlug, token, initialData, attemptMode]);
 
   const course = data?.course || {};
   const quiz = data?.quiz || {};
@@ -163,6 +186,9 @@ export default function DedicatedQuizQuestionsPage({
         const parsed = JSON.parse(saved);
         if (parsed.selectedAnswers) setSelectedAnswers(parsed.selectedAnswers);
         if (parsed.flaggedQuestions) setFlaggedQuestions(parsed.flaggedQuestions);
+        if (parsed.struckOptions) setStruckOptions(parsed.struckOptions);
+        if (parsed.highlightedSnippets) setHighlightedSnippets(parsed.highlightedSnippets);
+        if (parsed.matchingAnswers) setMatchingAnswers(parsed.matchingAnswers);
         if (parsed.currentIndex !== undefined) setCurrentIndex(parsed.currentIndex);
         if (parsed.timeRemaining !== undefined && parsed.timeRemaining > 0) {
           setTimeRemaining(parsed.timeRemaining);
@@ -211,6 +237,9 @@ export default function DedicatedQuizQuestionsPage({
         JSON.stringify({
           selectedAnswers,
           flaggedQuestions,
+          struckOptions,
+          highlightedSnippets,
+          matchingAnswers,
           currentIndex,
           timeRemaining,
           timeSpentSeconds,
@@ -219,14 +248,7 @@ export default function DedicatedQuizQuestionsPage({
     } catch (e) {
       // ignore quota errors
     }
-  }, [selectedAnswers, flaggedQuestions, currentIndex, timeRemaining, timeSpentSeconds, isSubmitted, storageKey, totalQuestions]);
-
-  const isPracticeMode = useMemo(() => {
-    return (
-      attemptMode === "practice" ||
-      (quiz?.type || "").toLowerCase().includes("practice")
-    );
-  }, [attemptMode, quiz]);
+  }, [selectedAnswers, flaggedQuestions, struckOptions, highlightedSnippets, matchingAnswers, currentIndex, timeRemaining, timeSpentSeconds, isSubmitted, storageKey, totalQuestions]);
 
   const courseDisplayName = useMemo(() => {
     if (course?.name) return course.name;
@@ -254,6 +276,105 @@ export default function DedicatedQuizQuestionsPage({
       ...prev,
       [questionId]: !prev[questionId],
     }));
+  };
+
+  // Strike-off toggle handler (Eliminate options)
+  const handleToggleStrike = (questionId, optionId, e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    setStruckOptions((prev) => {
+      const qStruck = prev[questionId] || {};
+      return {
+        ...prev,
+        [questionId]: {
+          ...qStruck,
+          [optionId]: !qStruck[optionId],
+        },
+      };
+    });
+  };
+
+  // Text Highlighting Tool Handlers
+  const handleHighlightSelection = (questionId) => {
+    if (typeof window === "undefined") return;
+    const selection = window.getSelection();
+    const text = selection ? selection.toString().trim() : "";
+    if (!text || text.length < 2) return;
+
+    setHighlightedSnippets((prev) => {
+      const list = prev[questionId] || [];
+      if (list.includes(text)) return prev;
+      return {
+        ...prev,
+        [questionId]: [...list, text],
+      };
+    });
+
+    if (selection) {
+      try {
+        selection.removeAllRanges();
+      } catch (err) {
+        // ignore
+      }
+    }
+  };
+
+  const handleClearHighlights = (questionId) => {
+    setHighlightedSnippets((prev) => ({
+      ...prev,
+      [questionId]: [],
+    }));
+  };
+
+  // Helper to render text with highlights applied
+  const renderHighlightedText = (text, questionId) => {
+    if (!text) return "";
+    const snippets = highlightedSnippets[questionId] || [];
+    if (!snippets || snippets.length === 0) return text;
+
+    const escaped = snippets
+      .filter(Boolean)
+      .map((s) => s.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&"))
+      .join("|");
+    if (!escaped) return text;
+
+    try {
+      const regex = new RegExp(`(${escaped})`, "gi");
+      const parts = text.split(regex);
+
+      return parts.map((part, i) => {
+        const isMatch = snippets.some(
+          (s) => s.toLowerCase() === part.toLowerCase()
+        );
+        if (isMatch) {
+          return (
+            <mark
+              key={i}
+              className="bg-amber-200 text-amber-950 font-bold px-1.5 py-0.5 rounded shadow-2xs"
+            >
+              {part}
+            </mark>
+          );
+        }
+        return part;
+      });
+    } catch (err) {
+      return text;
+    }
+  };
+
+  // Matching Question Handler
+  const handleMatchingSelect = (questionId, itemKey, matchValue) => {
+    if (isSubmitted) return;
+    setMatchingAnswers((prev) => {
+      const qMatches = prev[questionId] || {};
+      return {
+        ...prev,
+        [questionId]: {
+          ...qMatches,
+          [itemKey]: matchValue,
+        },
+      };
+    });
   };
 
   const handleNext = () => {
@@ -289,6 +410,9 @@ export default function DedicatedQuizQuestionsPage({
   const handleRetake = () => {
     setSelectedAnswers({});
     setFlaggedQuestions({});
+    setStruckOptions({});
+    setHighlightedSnippets({});
+    setMatchingAnswers({});
     setCurrentIndex(0);
     setIsSubmitted(false);
     setShowSubmitModal(false);
@@ -313,38 +437,99 @@ export default function DedicatedQuizQuestionsPage({
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
 
-  const progressPercentage = totalQuestions > 0
-    ? Math.round(((currentIndex + 1) / totalQuestions) * 100)
-    : 0;
+  // Real-time Score Stats Calculation (Kitne Sahi, Kitne Galat, Baaki)
+  const scoreStats = useMemo(() => {
+    let correct = 0;
+    let incorrect = 0;
 
-  const answeredCount = Object.keys(selectedAnswers).length;
-  const unansweredCount = totalQuestions - answeredCount;
+    questions.forEach((q) => {
+      const selectedId = selectedAnswers[q.id];
+      if (selectedId !== undefined && selectedId !== null) {
+        const correctOpt = q.options?.find(
+          (o) => o.is_correct || o.id === q.correct_option_id
+        );
+        const selectedOpt = q.options?.find((o) => o.id === selectedId);
+
+        if (
+          selectedOpt?.is_correct ||
+          (correctOpt && selectedId === correctOpt.id)
+        ) {
+          correct += 1;
+        } else {
+          incorrect += 1;
+        }
+      }
+    });
+
+    const answered = Object.keys(selectedAnswers).length;
+    const unanswered = Math.max(0, questions.length - answered);
+
+    return {
+      correct,
+      incorrect,
+      answered,
+      unanswered,
+      total: questions.length,
+    };
+  }, [questions, selectedAnswers]);
+
+  const progressPercentage =
+    totalQuestions > 0
+      ? Math.round(((currentIndex + 1) / totalQuestions) * 100)
+      : 0;
+
+  const answeredCount = scoreStats.answered;
+  const unansweredCount = scoreStats.unanswered;
   const flaggedCount = Object.values(flaggedQuestions).filter(Boolean).length;
 
   const passingScore = Number(quiz?.passing_score) || 70;
-  // Estimated percentage based on answered ratio or completion
-  const completionPercentage = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
-  const isPassed = completionPercentage >= passingScore;
+  const finalPercentage =
+    totalQuestions > 0
+      ? Math.round((scoreStats.correct / totalQuestions) * 100)
+      : 0;
+  const isPassed = finalPercentage >= passingScore;
+
+  // Case study content check for current question or quiz
+  const caseStudyContent = useMemo(() => {
+    if (!currentQuestion) return null;
+    return (
+      currentQuestion.case_study ||
+      currentQuestion.scenario ||
+      quiz?.description ||
+      "Case Study Scenario: TechNova Global is executing a multi-phase digital transformation initiative under the PRINCE2 governance framework. As the Lead Project Manager, review the stage boundary plans, risk tolerances, and business justification to evaluate the questions below."
+    );
+  }, [currentQuestion, quiz]);
+
+  // Matching check for current question
+  const isMatchingType = useMemo(() => {
+    if (!currentQuestion) return false;
+    const typeStr = (currentQuestion.type || "").toLowerCase();
+    return (
+      typeStr === "matching" ||
+      typeStr === "matching_set" ||
+      typeStr.includes("match")
+    );
+  }, [currentQuestion]);
 
   return (
     <>
       <DynamicSEO
         title={`${quiz?.title || "Exam Simulator"} — ${isSubmitted ? "Result Summary" : "Questions"} | ScholarAcad`}
-        description={`Interactive question screen for ${quiz?.title || "Quiz"} - ${courseDisplayName}`}
+        description={`Interactive exam simulator for ${quiz?.title || "Quiz"} - ${courseDisplayName}`}
         canonicalUrl={getCleanCanonicalUrl(`/${courseSlug}/quizzes/${quizSlug}/questions`)}
         robots="noindex, nofollow"
       />
 
       <Navbar />
 
-      <main className="min-h-screen bg-[#f3f4f8] pb-16">
+      <main className="min-h-screen bg-[#f1f3f9] pb-20">
         {/* Top Sticky Header */}
-        <header className="sticky top-0 z-30 bg-gradient-to-r from-[#491689] via-[#6520b8] to-[#7f26d9] text-white shadow-md">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+        <header className="sticky top-0 z-30 bg-white border-b border-gray-200 text-gray-900 shadow-xs">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <Link
                 href={`/${courseSlug}/quizzes/${quizSlug}`}
-                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition text-xs font-semibold flex items-center gap-1.5 shrink-0"
+                className="p-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#882CFB] border border-purple-200 transition text-xs font-semibold flex items-center gap-1.5 shrink-0"
                 title="Back to Quiz Details"
               >
                 <FaArrowLeft className="text-xs" />
@@ -352,10 +537,10 @@ export default function DedicatedQuizQuestionsPage({
               </Link>
 
               <div className="min-w-0">
-                <h1 className="text-sm sm:text-base font-bold text-white truncate">
+                <h1 className="text-sm sm:text-base font-black text-gray-900 truncate tracking-wide">
                   {quiz?.title || "Exam Simulator"}
                 </h1>
-                <p className="text-[11px] text-purple-200 truncate">
+                <p className="text-[11px] text-gray-500 truncate font-medium">
                   {courseDisplayName}
                 </p>
               </div>
@@ -363,17 +548,17 @@ export default function DedicatedQuizQuestionsPage({
 
             {/* Timer & Submit Bar */}
             {!isSubmitted && totalQuestions > 0 && (
-              <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+              <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
                 {/* Live Countdown Timer */}
                 <div
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs sm:text-sm font-black font-mono shadow-sm transition ${
+                  className={`flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-xl border text-xs sm:text-sm font-black font-mono shadow-xs transition ${
                     timeRemaining !== null && timeRemaining < 300
-                      ? "bg-red-500/20 border-red-400 text-amber-300 animate-pulse"
-                      : "bg-white/15 border-white/20 text-white"
+                      ? "bg-red-50 border-red-300 text-red-600 animate-pulse"
+                      : "bg-purple-50 border-purple-200 text-[#882CFB]"
                   }`}
                   title="Time Remaining"
                 >
-                  <MdOutlineTimer className="text-base text-amber-300" />
+                  <MdOutlineTimer className="text-base text-[#882CFB]" />
                   <span>{formatTimer(timeRemaining)}</span>
                 </div>
 
@@ -381,7 +566,7 @@ export default function DedicatedQuizQuestionsPage({
                 <button
                   type="button"
                   onClick={() => setShowSubmitModal(true)}
-                  className="px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold bg-amber-400 hover:bg-amber-300 text-slate-900 shadow-md flex items-center gap-1.5 transition cursor-pointer"
+                  className="px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold bg-[#882CFB] hover:bg-[#7221D8] text-white shadow-xs flex items-center gap-1.5 transition cursor-pointer"
                 >
                   <MdOutlineSend className="text-sm" />
                   <span>Submit Exam</span>
@@ -392,17 +577,88 @@ export default function DedicatedQuizQuestionsPage({
 
           {/* Progress Bar */}
           {!isSubmitted && totalQuestions > 0 && (
-            <div className="w-full bg-black/20 h-1.5">
+            <div className="w-full bg-gray-100 h-1.5">
               <div
-                className="bg-amber-400 h-1.5 transition-all duration-300 ease-out"
+                className="bg-[#882CFB] h-1.5 transition-all duration-300 ease-out"
                 style={{ width: `${progressPercentage}%` }}
               />
             </div>
           )}
         </header>
 
-        {/* Content Section */}
-        <section className="max-w-4xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8">
+        {/* Live Status Sub-Header: Correct, Incorrect, Remaining, Flagged */}
+        {!isSubmitted && totalQuestions > 0 && (
+          <div className="bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-2xs py-2.5 px-4 sticky top-[53px] z-20">
+            <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs">
+              {/* Score Badges */}
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                {/* Correct Badge */}
+                <div
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-300 font-extrabold shadow-2xs"
+                  title="Questions answered correctly"
+                >
+                  <FaCheckCircle className="text-emerald-600 text-sm" />
+                  <span>Correct:</span>
+                  <span className="text-emerald-950 font-black text-sm">
+                    {scoreStats.correct}
+                  </span>
+                </div>
+
+                {/* Incorrect Badge */}
+                <div
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-50 text-rose-800 border border-rose-300 font-extrabold shadow-2xs"
+                  title="Questions answered incorrectly"
+                >
+                  <FaTimesCircle className="text-rose-600 text-sm" />
+                  <span>Incorrect:</span>
+                  <span className="text-rose-950 font-black text-sm">
+                    {scoreStats.incorrect}
+                  </span>
+                </div>
+
+                {/* Remaining Badge */}
+                <div
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 text-slate-700 border border-slate-300 font-extrabold shadow-2xs"
+                  title="Questions remaining to answer"
+                >
+                  <MdOutlineAssignmentTurnedIn className="text-slate-500 text-sm" />
+                  <span>Remaining:</span>
+                  <span className="text-slate-900 font-black text-sm">
+                    {scoreStats.unanswered}
+                  </span>
+                </div>
+
+                {/* Flagged Badge */}
+                {flaggedCount > 0 && (
+                  <div
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-50 text-amber-800 border border-amber-300 font-extrabold shadow-2xs"
+                    title="Marked for review"
+                  >
+                    <FaFlag className="text-amber-500 text-xs" />
+                    <span>Flagged:</span>
+                    <span className="text-amber-950 font-black text-sm">
+                      {flaggedCount}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Progress Summary Counter */}
+              <div className="text-[11px] sm:text-xs font-bold text-slate-500 flex items-center gap-2">
+                <span>
+                  Question {currentIndex + 1} of {totalQuestions}
+                </span>
+                <span className="text-slate-300">•</span>
+                <span className="text-[#882CFB] font-black">
+                  {progressPercentage}% Completed
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Content Section - Expanded Width for Prominent Question Box */}
+        <section className="max-w-5xl lg:max-w-6xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8">
           {/* Loading State */}
           {loading && (
             <div className="bg-white rounded-3xl p-16 shadow-sm border border-slate-200 flex flex-col items-center justify-center space-y-4 my-8">
@@ -425,7 +681,7 @@ export default function DedicatedQuizQuestionsPage({
               <p className="text-sm text-slate-500 mb-6">{error}</p>
               <Link
                 href={`/${active_country || "in"}/${courseSlug}/quizzes/${quizSlug}`}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#6520b8] text-white rounded-xl text-xs font-bold hover:bg-[#53169c] transition shadow-sm"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#882CFB] text-white rounded-xl text-xs font-bold hover:bg-[#701cdb] transition shadow-sm"
               >
                 <FaArrowLeft className="text-xs" />
                 <span>Return to Quiz Details</span>
@@ -436,7 +692,7 @@ export default function DedicatedQuizQuestionsPage({
           {/* Empty State */}
           {!loading && !error && totalQuestions === 0 && (
             <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-sm max-w-lg mx-auto my-8">
-              <div className="w-16 h-16 bg-purple-50 text-[#6520b8] rounded-2xl flex items-center justify-center mx-auto text-3xl mb-4">
+              <div className="w-16 h-16 bg-[#F4EFFF] text-[#882CFB] rounded-2xl flex items-center justify-center mx-auto text-3xl mb-4">
                 <MdQuiz />
               </div>
               <h2 className="text-xl font-bold text-slate-900 mb-2">
@@ -447,7 +703,7 @@ export default function DedicatedQuizQuestionsPage({
               </p>
               <Link
                 href={`/${courseSlug}/quizzes/${quizSlug}`}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#6520b8] text-white rounded-xl text-xs font-bold hover:bg-[#53169c] transition shadow-sm"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#882CFB] text-white rounded-xl text-xs font-bold hover:bg-[#701cdb] transition shadow-sm"
               >
                 <FaArrowLeft className="text-xs" />
                 <span>Return to Quiz Details</span>
@@ -458,13 +714,13 @@ export default function DedicatedQuizQuestionsPage({
           {/* RESULT / SUBMITTED SUMMARY VIEW */}
           {!loading && !error && isSubmitted && (
             <div className="space-y-6">
-              <div className="bg-white rounded-3xl shadow-sm border border-slate-200/90 p-6 sm:p-10 text-center space-y-6">
+              <div className="bg-white rounded-3xl shadow-xl border border-slate-200/90 p-6 sm:p-12 text-center space-y-6">
                 {/* Result Status Icon */}
                 <div
-                  className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto text-4xl shadow-inner ${
+                  className={`w-24 h-24 rounded-3xl flex items-center justify-center mx-auto text-5xl shadow-inner ${
                     isPassed
                       ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
-                      : "bg-purple-50 text-[#6520b8] border border-purple-200"
+                      : "bg-rose-50 text-rose-600 border border-rose-200"
                   }`}
                 >
                   <FaTrophy />
@@ -472,67 +728,71 @@ export default function DedicatedQuizQuestionsPage({
 
                 <div className="space-y-2">
                   <span
-                    className={`inline-block px-4 py-1.5 rounded-full text-xs font-extrabold uppercase tracking-wider ${
+                    className={`inline-block px-5 py-1.5 rounded-full text-xs font-black uppercase tracking-wider ${
                       isPassed
-                        ? "bg-emerald-100 text-emerald-800"
-                        : "bg-amber-100 text-amber-800"
+                        ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
+                        : "bg-rose-100 text-rose-900 border border-rose-300"
                     }`}
                   >
-                    {isPassed ? "Exam Successfully Completed" : "Attempt Completed"}
+                    {isPassed ? "Exam Successfully Passed 🎉" : "Exam Attempt Completed"}
                   </span>
-                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
+                  <h2 className="text-2xl sm:text-4xl font-black text-slate-900">
                     {quiz?.title}
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
-                    Your answers have been recorded. Here is your session summary and response breakdown.
+                    Your answers have been evaluated. Here is your final score breakdown and response metrics.
                   </p>
                 </div>
 
                 {/* Score & Completion Metrics Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 sm:gap-4 max-w-2xl mx-auto pt-2">
-                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                      Answered
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto pt-4">
+                  {/* Correct Answers */}
+                  <div className="bg-emerald-50/80 rounded-2xl p-4 sm:p-5 border border-emerald-200 shadow-2xs">
+                    <span className="text-[11px] font-extrabold text-emerald-700 uppercase tracking-wider block mb-1">
+                      Correct Answers
                     </span>
-                    <span className="text-xl sm:text-2xl font-black text-[#6520b8]">
-                      {answeredCount} / {totalQuestions}
-                    </span>
-                  </div>
-
-                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                      Completion
-                    </span>
-                    <span className="text-xl sm:text-2xl font-black text-slate-800">
-                      {completionPercentage}%
+                    <span className="text-2xl sm:text-3xl font-black text-emerald-900">
+                      {scoreStats.correct} / {totalQuestions}
                     </span>
                   </div>
 
-                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                      Time Spent
+                  {/* Incorrect Answers */}
+                  <div className="bg-rose-50/80 rounded-2xl p-4 sm:p-5 border border-rose-200 shadow-2xs">
+                    <span className="text-[11px] font-extrabold text-rose-700 uppercase tracking-wider block mb-1">
+                      Incorrect Answers
                     </span>
-                    <span className="text-xl sm:text-2xl font-black text-slate-800">
-                      {formatTimer(timeSpentSeconds)}
+                    <span className="text-2xl sm:text-3xl font-black text-rose-900">
+                      {scoreStats.incorrect}
                     </span>
                   </div>
 
-                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                      Target Score
+                  {/* Final Score % */}
+                  <div className="bg-purple-50/80 rounded-2xl p-4 sm:p-5 border border-purple-200 shadow-2xs">
+                    <span className="text-[11px] font-extrabold text-[#882CFB] uppercase tracking-wider block mb-1">
+                      Your Score %
                     </span>
-                    <span className="text-xl sm:text-2xl font-black text-slate-800">
+                    <span className="text-2xl sm:text-3xl font-black text-[#2E318D]">
+                      {finalPercentage}%
+                    </span>
+                  </div>
+
+                  {/* Passing Target */}
+                  <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-2xs">
+                    <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider block mb-1">
+                      Passing Target
+                    </span>
+                    <span className="text-2xl sm:text-3xl font-black text-slate-800">
                       {passingScore}%
                     </span>
                   </div>
                 </div>
 
                 {/* Action Buttons on Result Screen */}
-                <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row gap-3.5 justify-center max-w-md mx-auto">
+                <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
                   <button
                     type="button"
                     onClick={handleRetake}
-                    className="flex-1 py-3 px-5 rounded-xl text-xs sm:text-sm font-bold bg-[#6520b8] hover:bg-[#53169c] text-white shadow-md flex items-center justify-center gap-2 transition cursor-pointer"
+                    className="flex-1 py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold bg-[#882CFB] hover:bg-[#701cdb] text-white shadow-lg shadow-purple-200 flex items-center justify-center gap-2 transition cursor-pointer"
                   >
                     <FaRedo className="text-xs" />
                     <span>Retake Exam</span>
@@ -540,7 +800,7 @@ export default function DedicatedQuizQuestionsPage({
 
                   <Link
                     href={`/${courseSlug}/quizzes`}
-                    className="flex-1 py-3 px-5 rounded-xl text-xs sm:text-sm font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 shadow-sm flex items-center justify-center gap-2 transition cursor-pointer"
+                    className="flex-1 py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 shadow-sm flex items-center justify-center gap-2 transition cursor-pointer"
                   >
                     <span>All Quizzes</span>
                   </Link>
@@ -549,36 +809,80 @@ export default function DedicatedQuizQuestionsPage({
             </div>
           )}
 
-          {/* ACTIVE QUESTIONS SCREEN (1x1 Focus View) */}
+          {/* ACTIVE QUESTIONS SCREEN (BIG QUESTION BOX & MODERN TOOLS) */}
           {!loading && !error && !isSubmitted && currentQuestion && (
             <div className="space-y-6">
-              <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/90 overflow-hidden">
-                {/* Question Card Header (Order No, Type, Flag Button) */}
-                <div className="bg-slate-50/90 border-b border-slate-100 px-6 py-4 flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="bg-[#6520b8] text-white text-xs font-black px-3 py-1 rounded-lg">
+              {/* MAIN ENLARGED QUESTION CARD */}
+              <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-200/90 overflow-hidden transition-all duration-300">
+                {/* Question Card Top Bar (Question #, Type, Marks, Toolbar) */}
+                <div className="bg-slate-50/95 border-b border-slate-200/80 px-6 sm:px-10 py-4 flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="bg-[#882CFB] text-white text-xs sm:text-sm font-black px-4 py-1.5 rounded-xl shadow-xs">
                       Question #{currentQuestion?.order_no || currentIndex + 1}
                     </span>
-                    <span className="text-xs font-semibold text-slate-500 bg-white border border-slate-200 px-2.5 py-1 rounded-lg">
-                      {currentQuestion?.type ? currentQuestion.type.replace(/_/g, " ").toUpperCase() : "SINGLE CHOICE"}
+                    <span className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-xl uppercase tracking-wider">
+                      {currentQuestion?.type ? currentQuestion.type.replace(/_/g, " ") : "MULTIPLE CHOICE"}
+                    </span>
+                    <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1.5 rounded-xl">
+                      {currentQuestion?.marks || 1} Mark{currentQuestion?.marks > 1 ? "s" : ""}
                     </span>
                   </div>
 
-                  {/* Flag / Review Toggle Button */}
-                  <div className="flex items-center gap-3">
+                  {/* Interactive Toolbar: Highlight Tool & Flag Question */}
+                  <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                    {/* Case Study Toggle Button in Toolbar */}
+                    <button
+                      type="button"
+                      onClick={() => setIsCaseStudyOpen((prev) => !prev)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                        isCaseStudyOpen
+                          ? "bg-indigo-100 text-indigo-900 border border-indigo-300 font-extrabold"
+                          : "bg-white hover:bg-slate-100 text-indigo-700 border border-indigo-200"
+                      }`}
+                      title="Toggle Case Study / Scenario Passage"
+                    >
+                      <FaBookOpen className="text-indigo-600 text-xs" />
+                      <span>{isCaseStudyOpen ? "Case Study (Open)" : "View Case Study"}</span>
+                    </button>
+
+                    {/* Highlighter Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleHighlightSelection(currentQuestion.id)}
+                      className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                      title="Select text with your cursor and click to highlight key phrases"
+                    >
+                      <FaHighlighter className="text-amber-600 text-xs" />
+                      <span>Highlight Text</span>
+                    </button>
+
+                    {/* Clear Highlights if any exist for this question */}
+                    {highlightedSnippets[currentQuestion.id]?.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleClearHighlights(currentQuestion.id)}
+                        className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 transition flex items-center gap-1 cursor-pointer"
+                        title="Clear highlights for this question"
+                      >
+                        <FaEraser className="text-xs" />
+                        <span className="hidden sm:inline">Clear</span>
+                      </button>
+                    )}
+
+                    {/* Flag / Review Button */}
                     <button
                       type="button"
                       onClick={() => handleToggleFlag(currentQuestion.id)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-2xs ${
                         flaggedQuestions[currentQuestion.id]
-                          ? "bg-amber-100 text-amber-800 border border-amber-300"
+                          ? "bg-amber-400 text-slate-900 border border-amber-500 font-black"
                           : "bg-white hover:bg-slate-100 text-slate-600 border border-slate-200"
                       }`}
                       title="Flag this question for review"
                     >
                       {flaggedQuestions[currentQuestion.id] ? (
                         <>
-                          <FaFlag className="text-amber-600 text-xs" />
+                          <FaFlag className="text-slate-900 text-xs" />
                           <span>Flagged</span>
                         </>
                       ) : (
@@ -588,129 +892,389 @@ export default function DedicatedQuizQuestionsPage({
                         </>
                       )}
                     </button>
-
-                    <span className="text-xs font-semibold text-slate-400">
-                      {currentQuestion?.marks || 1} Mark{currentQuestion?.marks > 1 ? "s" : ""}
-                    </span>
                   </div>
                 </div>
 
-                <div className="p-6 sm:p-8 space-y-6">
-                  {/* Question Text */}
-                  <div className="text-base sm:text-lg font-bold text-slate-900 leading-relaxed">
-                    {currentQuestion?.question_text}
-                  </div>
+                <div className="p-6 sm:p-10 lg:p-12 space-y-6">
+                  {/* CASE STUDY / SCENARIO PANEL (if question or quiz has case study) */}
+                  {caseStudyContent && (
+                    <div className="rounded-2xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50/70 via-white to-purple-50/40 overflow-hidden shadow-2xs">
+                      <div
+                        onClick={() => setIsCaseStudyOpen((prev) => !prev)}
+                        className="px-5 sm:px-6 py-3.5 bg-indigo-100/60 hover:bg-indigo-100/90 border-b border-indigo-200 flex items-center justify-between cursor-pointer transition select-none"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <FaBookOpen className="text-indigo-700 text-base" />
+                          <span className="font-black text-xs sm:text-sm text-indigo-950 uppercase tracking-wider">
+                            Case Study / Background Scenario
+                          </span>
+                          <span className="text-[10px] font-extrabold bg-indigo-200 text-indigo-900 px-2 py-0.5 rounded-full">
+                            Passage
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          className="text-indigo-800 text-xs font-bold flex items-center gap-1"
+                        >
+                          <span>{isCaseStudyOpen ? "Hide Scenario" : "Show Scenario"}</span>
+                          {isCaseStudyOpen ? <FaChevronUp /> : <FaChevronDown />}
+                        </button>
+                      </div>
 
-                  {/* Question Image (if any) */}
-                  {currentQuestion?.image_url && (
-                    <div className="rounded-2xl overflow-hidden border border-slate-200 max-w-xl">
-                      <img
-                        src={currentQuestion.image_url}
-                        alt={`Question ${currentIndex + 1} Visual`}
-                        className="w-full h-auto object-contain bg-slate-50"
-                      />
+                      {isCaseStudyOpen && (
+                        <div className="p-5 sm:p-6 text-sm sm:text-base text-slate-800 leading-relaxed font-normal whitespace-pre-line border-t border-indigo-100 max-h-80 overflow-y-auto">
+                          {renderHighlightedText(caseStudyContent, currentQuestion.id)}
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  {/* Options List */}
-                  <div className="space-y-3 pt-2">
+                  {/* BIG QUESTION TEXT (Enhanced Font & Prominence) */}
+                  <div className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 leading-snug sm:leading-relaxed tracking-tight">
+                    {renderHighlightedText(currentQuestion?.question_text, currentQuestion.id)}
+                  </div>
+
+                  {/* QUESTION IMAGE (with Click-to-Zoom Lightbox Modal) */}
+                  {currentQuestion?.image_url && (
+                    <div className="relative group rounded-3xl overflow-hidden border-2 border-slate-200 bg-slate-50 max-w-2xl my-4 shadow-sm">
+                      <img
+                        src={currentQuestion.image_url}
+                        alt={`Question ${currentIndex + 1} Visual`}
+                        className="w-full h-auto max-h-96 object-contain p-2"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setZoomImage(currentQuestion.image_url)}
+                        className="absolute top-3 right-3 bg-slate-900/80 hover:bg-slate-900 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md transition cursor-pointer backdrop-blur-xs"
+                        title="Click to Zoom Image"
+                      >
+                        <FaSearchPlus className="text-xs" />
+                        <span>Click to Zoom</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* MATCHING QUESTION INTERACTIVE UI (if type is matching) */}
+                  {isMatchingType && (
+                    <div className="p-5 sm:p-6 rounded-2xl bg-[#F4EFFF]/60 border border-[#E4D3FF] space-y-4">
+                      <div className="flex items-center gap-2 text-xs sm:text-sm font-black text-[#2E318D] uppercase tracking-wider">
+                        <FaExchangeAlt />
+                        <span>Interactive Matching Pair Exercise</span>
+                      </div>
+                      <p className="text-xs text-slate-600">
+                        Match each item on the left with its corresponding concept on the right:
+                      </p>
+
+                      {/* Matching Matrix */}
+                      <div className="space-y-3 pt-2">
+                        {Array.isArray(currentQuestion?.options) &&
+                          currentQuestion.options.map((option, optIdx) => {
+                            const pairKey = `item_${option.id || optIdx}`;
+                            const selectedMatch =
+                              matchingAnswers[currentQuestion.id]?.[pairKey] || "";
+
+                            return (
+                              <div
+                                key={option.id || optIdx}
+                                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-white rounded-xl border border-purple-100 shadow-2xs"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <span className="w-7 h-7 rounded-lg bg-[#882CFB] text-white font-bold text-xs flex items-center justify-center shrink-0">
+                                    {option.option_label || String.fromCharCode(65 + optIdx)}
+                                  </span>
+                                  <span className="text-xs sm:text-sm font-bold text-slate-800">
+                                    {option.option_text}
+                                  </span>
+                                </div>
+
+                                <div className="sm:w-60">
+                                  <select
+                                    value={selectedMatch}
+                                    onChange={(e) =>
+                                      handleMatchingSelect(
+                                        currentQuestion.id,
+                                        pairKey,
+                                        e.target.value
+                                      )
+                                    }
+                                    className="w-full text-xs font-semibold p-2 rounded-lg border border-slate-300 bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#882CFB]"
+                                  >
+                                    <option value="">-- Select Match --</option>
+                                    {currentQuestion.options.map((targetOpt, tIdx) => (
+                                      <option
+                                        key={targetOpt.id || tIdx}
+                                        value={targetOpt.id}
+                                      >
+                                        Pair with: {targetOpt.option_label}. {targetOpt.option_text?.substring(0, 35)}...
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STANDARD OPTIONS LIST WITH STRIKE-OFF FEATURE */}
+                  <div className="space-y-3.5 pt-2">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-500 pb-1">
+                      <span>Select the best answer from the options below:</span>
+                      <span className="text-[11px] text-slate-400">
+                        Tip: Use Strike-Off (S̶) to cross out incorrect options
+                      </span>
+                    </div>
+
                     {Array.isArray(currentQuestion?.options) &&
                       currentQuestion.options.map((option) => {
                         const isSelected =
                           selectedAnswers[currentQuestion.id] === option.id;
-                        const hasAnswered = Boolean(selectedAnswers[currentQuestion.id]);
+                        const hasAnswered =
+                          selectedAnswers[currentQuestion.id] !== undefined;
                         const isCorrectOption = Boolean(option.is_correct);
+                        const isStruck = Boolean(
+                          struckOptions[currentQuestion.id]?.[option.id]
+                        );
 
-                        let cardStyle = "border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/60";
-                        let badgeStyle = "bg-slate-100 text-slate-700 border border-slate-200";
+                        // Card Styling Based on Selection & Strike-off
+                        let cardStyle =
+                          "border-slate-200 hover:border-purple-300 bg-white hover:bg-slate-50/80 shadow-2xs";
+                        let badgeStyle =
+                          "bg-slate-100 text-slate-700 border border-slate-200";
                         let iconEl = <FaRegCircle className="text-slate-300" />;
 
-                        if (isPracticeMode && hasAnswered) {
+                        // If candidate has answered this question, show instant visual feedback
+                        if (hasAnswered) {
                           if (isCorrectOption) {
-                            cardStyle = "border-emerald-500 bg-emerald-50/90 text-emerald-950 font-semibold ring-2 ring-emerald-500 shadow-sm";
+                            cardStyle =
+                              "border-emerald-500 bg-emerald-50/90 text-emerald-950 font-semibold ring-2 ring-emerald-500 shadow-sm";
                             badgeStyle = "bg-emerald-600 text-white";
                             iconEl = <FaCheck className="text-emerald-600 font-bold" />;
                           } else if (isSelected && !isCorrectOption) {
-                            cardStyle = "border-rose-500 bg-rose-50/90 text-rose-950 font-semibold ring-2 ring-rose-500 shadow-sm";
+                            cardStyle =
+                              "border-rose-500 bg-rose-50/90 text-rose-950 font-semibold ring-2 ring-rose-500 shadow-sm";
                             badgeStyle = "bg-rose-600 text-white";
                             iconEl = <FaTimes className="text-rose-600 font-bold" />;
                           } else {
-                            cardStyle = "border-slate-200 bg-white opacity-50 text-slate-400";
-                            badgeStyle = "bg-slate-100 text-slate-400 border border-slate-200";
+                            cardStyle =
+                              "border-slate-200 bg-white opacity-40 text-slate-400";
+                            badgeStyle =
+                              "bg-slate-100 text-slate-400 border border-slate-200";
                           }
                         } else if (isSelected) {
-                          cardStyle = "border-[#6520b8] bg-purple-50/70 shadow-sm ring-1 ring-[#6520b8]";
-                          badgeStyle = "bg-[#6520b8] text-white";
-                          iconEl = <FaCheckCircle className="text-[#6520b8]" />;
+                          cardStyle =
+                            "border-[#882CFB] bg-purple-50/70 shadow-sm ring-2 ring-[#882CFB]";
+                          badgeStyle = "bg-[#882CFB] text-white";
+                          iconEl = <FaCheckCircle className="text-[#882CFB]" />;
+                        }
+
+                        // Strikethrough style overrides
+                        if (isStruck) {
+                          cardStyle += " opacity-50 bg-slate-50";
                         }
 
                         return (
-                          <button
+                          <div
                             key={option.id}
-                            type="button"
                             onClick={() =>
                               handleSelectOption(currentQuestion.id, option.id)
                             }
-                            className={`w-full text-left p-4 rounded-2xl border-2 transition-all duration-200 flex items-start gap-3.5 cursor-pointer ${cardStyle}`}
+                            className={`w-full text-left p-4 sm:p-5 rounded-2xl border-2 transition-all duration-200 flex items-start justify-between gap-3 sm:gap-4 cursor-pointer relative group ${cardStyle}`}
                           >
-                            {/* Option Label Badge (A, B, C, D) */}
-                            <span
-                              className={`w-8 h-8 rounded-xl font-bold text-xs flex items-center justify-center shrink-0 transition-colors ${badgeStyle}`}
-                            >
-                              {option.option_label || ""}
-                            </span>
+                            <div className="flex items-start gap-3.5 flex-1 min-w-0">
+                              {/* Option Label Badge (A, B, C, D) */}
+                              <span
+                                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center shrink-0 transition-colors shadow-2xs ${badgeStyle}`}
+                              >
+                                {option.option_label || ""}
+                              </span>
 
-                            {/* Option Text */}
-                            <div className="flex-1 pt-1 text-xs sm:text-sm font-semibold text-slate-800 leading-relaxed">
-                              {option.option_text}
-
-                              {/* Option Image (if any) */}
-                              {option.image_url && (
-                                <div className="mt-2 rounded-xl overflow-hidden border border-slate-200 max-w-sm">
-                                  <img
-                                    src={option.image_url}
-                                    alt={`Option ${option.option_label}`}
-                                    className="w-full h-auto object-contain"
-                                  />
+                              {/* Option Text */}
+                              <div className="flex-1 pt-1 min-w-0">
+                                <div
+                                  className={`text-sm sm:text-base font-semibold leading-relaxed ${
+                                    isStruck
+                                      ? "line-through decoration-rose-500 decoration-2 text-slate-400"
+                                      : "text-slate-800"
+                                  }`}
+                                >
+                                  {option.option_text}
                                 </div>
-                              )}
+
+                                {/* Strike-off Indicator Bar: ----------- (Option Eliminated) */}
+                                {isStruck && (
+                                  <div className="mt-1 flex items-center gap-1.5 text-[11px] font-mono font-bold text-rose-600 bg-rose-50 px-2.5 py-0.5 rounded-md border border-rose-200 w-fit">
+                                    <span>-----------</span>
+                                    <span>(Option Eliminated)</span>
+                                  </div>
+                                )}
+
+                                {/* Option Image (with click-to-zoom) */}
+                                {option.image_url && (
+                                  <div className="mt-2.5 relative group rounded-xl overflow-hidden border border-slate-200 max-w-xs bg-slate-50">
+                                    <img
+                                      src={option.image_url}
+                                      alt={`Option ${option.option_label}`}
+                                      className="w-full h-auto max-h-40 object-contain p-1"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setZoomImage(option.image_url);
+                                      }}
+                                      className="absolute top-1.5 right-1.5 bg-black/70 hover:bg-black text-white p-1.5 rounded-lg text-xs transition"
+                                      title="Zoom Option Image"
+                                    >
+                                      <FaSearchPlus />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             </div>
 
-                            {/* Check Circle / Result Icon */}
-                            <div className="pt-1 text-lg shrink-0">
-                              {iconEl}
+                            {/* Right Side: Strike-Off Toggle Button + Selection Icon */}
+                            <div className="flex items-center gap-2.5 shrink-0 pt-1">
+                              {/* Strike-Off Toggle Button */}
+                              <button
+                                type="button"
+                                onClick={(e) =>
+                                  handleToggleStrike(currentQuestion.id, option.id, e)
+                                }
+                                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                                  isStruck
+                                    ? "bg-rose-100 text-rose-800 hover:bg-rose-200 border border-rose-300 font-extrabold"
+                                    : "bg-slate-100 hover:bg-slate-200 text-slate-500 border border-slate-200"
+                                }`}
+                                title={
+                                  isStruck
+                                    ? "Restore this option"
+                                    : "Strike off / Eliminate this option"
+                                }
+                              >
+                                <FaStrikethrough className="text-xs" />
+                                <span className="text-[10px] hidden sm:inline">
+                                  {isStruck ? "Undo Strike" : "Strike Off"}
+                                </span>
+                              </button>
+
+                              {/* Check / Status Icon */}
+                              <div className="text-xl">{iconEl}</div>
                             </div>
-                          </button>
+                          </div>
                         );
                       })}
                   </div>
 
-                  {/* Practice Mode Explanation Box */}
-                  {isPracticeMode && selectedAnswers[currentQuestion.id] && currentQuestion?.explanation && (
-                    <div className="mt-5 p-4 sm:p-5 rounded-2xl bg-amber-50/90 border border-amber-200 shadow-sm space-y-2 animate-fadeIn">
-                      <div className="flex items-center gap-2 text-xs font-black text-amber-900 uppercase tracking-wider">
-                        <FaCheckCircle className="text-emerald-600 text-base" />
-                        <span>Explanation & Rationale</span>
-                        {currentQuestion.correct_option_label && (
-                          <span className="ml-auto bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-300">
-                            Correct: Option {currentQuestion.correct_option_label}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-line font-medium pt-1">
-                        {currentQuestion.explanation}
-                      </div>
-                    </div>
-                  )}
+                  {/* HIGH-VISIBILITY EXPLANATION CARD (INSTANT FEEDBACK IN PROFESSIONAL ENGLISH) */}
+                  {selectedAnswers[currentQuestion.id] && (() => {
+                    const selectedOptionId = selectedAnswers[currentQuestion.id];
+                    const selectedOpt = currentQuestion?.options?.find(
+                      (o) => o.id === selectedOptionId
+                    );
+                    const correctOpt = currentQuestion?.options?.find(
+                      (o) => o.is_correct || o.id === currentQuestion.correct_option_id
+                    );
+                    const isCorrectChoice =
+                      selectedOpt?.is_correct ||
+                      (correctOpt && selectedOptionId === correctOpt.id);
+
+                    if (!isCorrectChoice) {
+                      // WRONG ANSWER FEEDBACK (IN PROFESSIONAL ENGLISH)
+                      return (
+                        <div className="mt-6 p-5 sm:p-7 rounded-3xl bg-rose-50/95 border-2 border-rose-300 shadow-md space-y-4 animate-in fade-in duration-200">
+                          {/* Banner Header */}
+                          <div className="flex items-center gap-3">
+                            <div className="w-11 h-11 rounded-2xl bg-rose-600 text-white flex items-center justify-center text-2xl shrink-0 shadow-md shadow-rose-200">
+                              <FaTimesCircle />
+                            </div>
+                            <div>
+                              <h4 className="text-base sm:text-lg font-black text-rose-950">
+                                ❌ Incorrect Answer
+                              </h4>
+                              <p className="text-xs sm:text-sm font-semibold text-rose-700">
+                                You selected Option {selectedOpt?.option_label}, which is incorrect.
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Selected Option Summary */}
+                          <div className="p-3.5 bg-rose-100/70 rounded-xl border border-rose-200 text-xs font-semibold text-rose-900">
+                            <span className="font-bold">Your Selected Option: </span>
+                            Option {selectedOpt?.option_label}: &ldquo;{selectedOpt?.option_text}&rdquo;
+                          </div>
+
+                          {/* Why Incorrect - Backend Description Box */}
+                          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-rose-200 space-y-2 shadow-2xs">
+                            <div className="flex items-center gap-2 text-xs font-black text-rose-900 uppercase tracking-wider">
+                              <FaLightbulb className="text-amber-500 text-base" />
+                              <span>Why is this answer incorrect? (Explanation & Concept)</span>
+                            </div>
+                            <div className="text-xs sm:text-sm text-slate-800 leading-relaxed font-medium whitespace-pre-line pt-1">
+                              {currentQuestion.explanation ||
+                                "This option is incorrect based on the syllabus standards. Please review the correct rationale and concept below."}
+                            </div>
+                          </div>
+
+                          {/* Correct Answer Highlight */}
+                          <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 flex items-start gap-3 shadow-2xs">
+                            <FaCheckCircle className="text-emerald-600 text-xl shrink-0 mt-0.5" />
+                            <div className="space-y-1">
+                              <span className="text-xs font-black text-emerald-900 uppercase tracking-wider block">
+                                Correct Answer: Option{" "}
+                                {correctOpt?.option_label || currentQuestion.correct_option_label}
+                              </span>
+                              <p className="text-xs sm:text-sm font-bold text-emerald-950">
+                                {correctOpt?.option_text || "Please refer to the option labeled above."}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    } else {
+                      // CORRECT ANSWER CELEBRATION FEEDBACK (IN PROFESSIONAL ENGLISH)
+                      return (
+                        <div className="mt-6 p-5 sm:p-7 rounded-3xl bg-emerald-50/95 border-2 border-emerald-300 shadow-md space-y-4 animate-in fade-in duration-200">
+                          {/* Banner Header */}
+                          <div className="flex items-center gap-3">
+                            <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-2xl shrink-0 shadow-md shadow-emerald-200">
+                              <FaCheckCircle />
+                            </div>
+                            <div>
+                              <h4 className="text-base sm:text-lg font-black text-emerald-950">
+                                🎉 Correct Answer!
+                              </h4>
+                              <p className="text-xs sm:text-sm font-semibold text-emerald-700">
+                                You selected Option {selectedOpt?.option_label}, which is correct.
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Explanation Box */}
+                          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-emerald-200 space-y-2 shadow-2xs">
+                            <div className="flex items-center gap-2 text-xs font-black text-emerald-900 uppercase tracking-wider">
+                              <FaLightbulb className="text-amber-500 text-base" />
+                              <span>Detailed Explanation & Rationale</span>
+                            </div>
+                            <div className="text-xs sm:text-sm text-slate-800 leading-relaxed font-medium whitespace-pre-line pt-1">
+                              {currentQuestion.explanation ||
+                                "Well done! Your selected option matches the official criteria."}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                  })()}
                 </div>
 
                 {/* Bottom Navigation Bar */}
-                <div className="bg-slate-50 border-t border-slate-100 px-6 py-4 flex items-center justify-between gap-3">
+                <div className="bg-slate-50 border-t border-slate-200/90 px-6 sm:px-10 py-5 flex items-center justify-between gap-4">
                   <button
                     type="button"
                     onClick={handlePrev}
                     disabled={currentIndex === 0}
-                    className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition ${
+                    className={`px-5 py-2.5 sm:py-3 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2 transition ${
                       currentIndex === 0
                         ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
                         : "bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-sm cursor-pointer"
@@ -720,7 +1284,7 @@ export default function DedicatedQuizQuestionsPage({
                     <span>Previous</span>
                   </button>
 
-                  <div className="text-xs font-semibold text-slate-500 hidden sm:block">
+                  <div className="text-xs sm:text-sm font-black text-slate-600 hidden sm:block">
                     Question {currentIndex + 1} of {totalQuestions}
                   </div>
 
@@ -728,16 +1292,16 @@ export default function DedicatedQuizQuestionsPage({
                     <button
                       type="button"
                       onClick={handleNext}
-                      className="px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 bg-[#6520b8] hover:bg-[#53169c] text-white shadow-md shadow-purple-200 transition cursor-pointer"
+                      className="px-6 sm:px-7 py-2.5 sm:py-3 rounded-2xl text-xs sm:text-sm font-black flex items-center gap-2 bg-[#882CFB] hover:bg-[#701cdb] text-white shadow-lg shadow-purple-200 transition cursor-pointer"
                     >
-                      <span>Next</span>
+                      <span>Next Question</span>
                       <FaArrowRight className="text-xs" />
                     </button>
                   ) : (
                     <button
                       type="button"
                       onClick={() => setShowSubmitModal(true)}
-                      className="px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-slate-900 shadow-md transition cursor-pointer"
+                      className="px-6 sm:px-7 py-2.5 sm:py-3 rounded-2xl text-xs sm:text-sm font-black flex items-center gap-2 bg-[#F7B439] hover:bg-amber-400 text-slate-900 shadow-lg shadow-amber-200 transition cursor-pointer"
                     >
                       <MdOutlineSend className="text-sm" />
                       <span>Finish & Submit</span>
@@ -746,56 +1310,89 @@ export default function DedicatedQuizQuestionsPage({
                 </div>
               </div>
 
-              {/* Question Navigation Palette / Quick Jump Grid */}
+              {/* QUESTION PALETTE / COLOR-CODED QUICK JUMP GRID */}
               {totalQuestions > 1 && (
-                <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-sm">
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
-                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                      <MdFormatListNumbered className="text-sm text-[#6520b8]" />
-                      <span>Question Palette ({totalQuestions} Total)</span>
+                    <span className="text-xs sm:text-sm font-black text-slate-800 flex items-center gap-2">
+                      <MdFormatListNumbered className="text-base text-[#882CFB]" />
+                      <span>Question Navigation Palette ({totalQuestions} Total)</span>
                     </span>
 
-                    {/* Legend */}
-                    <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-500">
-                      <span className="flex items-center gap-1">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#6520b8]"></span>
+                    {/* Color-Coded Palette Legend in English */}
+                    <div className="flex items-center gap-3 sm:gap-4 text-[11px] font-bold text-slate-500 flex-wrap">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-full bg-[#882CFB]"></span>
                         Current
                       </span>
-                      <span className="flex items-center gap-1">
-                        <span className="w-2.5 h-2.5 rounded-full bg-purple-300"></span>
-                        Answered ({answeredCount})
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
+                        Correct ({scoreStats.correct})
                       </span>
-                      <span className="flex items-center gap-1">
-                        <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-full bg-rose-500"></span>
+                        Incorrect ({scoreStats.incorrect})
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-full bg-amber-400"></span>
                         Flagged ({flaggedCount})
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-full bg-slate-200"></span>
+                        Remaining ({scoreStats.unanswered})
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1">
+                  <div className="flex flex-wrap gap-2.5 max-h-56 overflow-y-auto p-1">
                     {questions.map((q, idx) => {
                       const isCurrent = idx === currentIndex;
-                      const isAnswered = selectedAnswers[q.id] !== undefined;
+                      const selectedId = selectedAnswers[q.id];
+                      const isAnswered =
+                        selectedId !== undefined && selectedId !== null;
                       const isFlagged = Boolean(flaggedQuestions[q.id]);
+
+                      // Calculate if this question was answered correctly
+                      let isAnswerCorrect = false;
+                      if (isAnswered) {
+                        const correctOpt = q.options?.find(
+                          (o) => o.is_correct || o.id === q.correct_option_id
+                        );
+                        const selOpt = q.options?.find((o) => o.id === selectedId);
+                        isAnswerCorrect =
+                          selOpt?.is_correct ||
+                          (correctOpt && selectedId === correctOpt.id);
+                      }
+
+                      let btnStyle =
+                        "bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200";
+
+                      if (isCurrent) {
+                        btnStyle =
+                          "bg-[#882CFB] text-white ring-2 ring-[#882CFB] ring-offset-2 font-black shadow-md";
+                      } else if (isFlagged) {
+                        btnStyle =
+                          "bg-amber-100 text-amber-950 border border-amber-400 font-extrabold";
+                      } else if (isAnswered) {
+                        if (isAnswerCorrect) {
+                          btnStyle =
+                            "bg-emerald-100 text-emerald-950 border border-emerald-400 font-black";
+                        } else {
+                          btnStyle =
+                            "bg-rose-100 text-rose-950 border border-rose-400 font-black";
+                        }
+                      }
 
                       return (
                         <button
                           key={q.id || idx}
                           type="button"
                           onClick={() => handleJumpToQuestion(idx)}
-                          className={`relative w-9 h-9 rounded-xl text-xs font-bold flex items-center justify-center transition cursor-pointer ${
-                            isCurrent
-                              ? "bg-[#6520b8] text-white ring-2 ring-[#6520b8] ring-offset-1"
-                              : isFlagged
-                              ? "bg-amber-100 text-amber-900 border border-amber-300"
-                              : isAnswered
-                              ? "bg-purple-100 text-[#6520b8] border border-purple-300 font-extrabold"
-                              : "bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200"
-                          }`}
+                          className={`relative w-10 h-10 rounded-xl text-xs font-black flex items-center justify-center transition cursor-pointer ${btnStyle}`}
                         >
                           {idx + 1}
                           {isFlagged && (
-                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full"></span>
+                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full border border-white"></span>
                           )}
                         </button>
                       );
@@ -808,44 +1405,79 @@ export default function DedicatedQuizQuestionsPage({
         </section>
       </main>
 
+      {/* LIGHTBOX IMAGE ZOOM MODAL */}
+      {zoomImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-4"
+          onClick={() => setZoomImage(null)}
+        >
+          <div
+            className="relative max-w-4xl max-h-[90vh] bg-slate-900/60 p-4 sm:p-6 rounded-3xl border border-white/20 flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-full flex items-center justify-between pb-3 text-white border-b border-white/10 mb-3">
+              <span className="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-2">
+                <FaSearchPlus className="text-amber-400 text-sm" />
+                <span>Visual Diagram / Image Preview</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setZoomImage(null)}
+                className="text-white hover:text-red-400 text-2xl transition p-1 cursor-pointer"
+                title="Close Lightbox"
+              >
+                <IoCloseOutline />
+              </button>
+            </div>
+            <div className="p-2 overflow-auto max-h-[75vh] flex items-center justify-center">
+              <img
+                src={zoomImage}
+                alt="Enlarged Exam Visual"
+                className="max-w-full max-h-[70vh] object-contain rounded-xl shadow-2xl"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CONFIRMATION SUBMIT MODAL */}
       {showSubmitModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-bold text-slate-900">
+              <h3 className="text-lg font-black text-slate-900">
                 Confirm Exam Submission
               </h3>
               <button
                 type="button"
                 onClick={() => setShowSubmitModal(false)}
-                className="text-slate-400 hover:text-slate-600 text-xl cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 text-2xl cursor-pointer"
               >
                 <IoCloseOutline />
               </button>
             </div>
 
             <p className="text-xs sm:text-sm text-slate-600">
-              Are you sure you want to finish and submit your exam? Please check your progress summary below before submitting:
+              Are you sure you want to finish and submit your exam? Here is your real-time score and answer status:
             </p>
 
-            {/* Modal Stats Overview */}
-            <div className="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-xs">
+            {/* Modal Live Stats Overview in English */}
+            <div className="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Total Questions:</span>
-                <span className="font-bold text-slate-800">{totalQuestions}</span>
+                <span className="font-black text-slate-800">{totalQuestions}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-500">Answered:</span>
-                <span className="font-bold text-emerald-600">{answeredCount}</span>
+                <span className="text-slate-500">Correct Answers:</span>
+                <span className="font-black text-emerald-600">{scoreStats.correct}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-500">Unanswered:</span>
-                <span className="font-bold text-red-500">{unansweredCount}</span>
+                <span className="text-slate-500">Incorrect Answers:</span>
+                <span className="font-black text-rose-600">{scoreStats.incorrect}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-500">Flagged:</span>
-                <span className="font-bold text-amber-600">{flaggedCount}</span>
+                <span className="text-slate-500">Remaining:</span>
+                <span className="font-black text-slate-700">{scoreStats.unanswered}</span>
               </div>
             </div>
 
@@ -854,7 +1486,7 @@ export default function DedicatedQuizQuestionsPage({
               <button
                 type="button"
                 onClick={() => setShowSubmitModal(false)}
-                className="flex-1 py-3 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                className="flex-1 py-3 rounded-2xl text-xs sm:text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
               >
                 Continue Test
               </button>
@@ -862,7 +1494,7 @@ export default function DedicatedQuizQuestionsPage({
               <button
                 type="button"
                 onClick={handleFinalSubmit}
-                className="flex-1 py-3 rounded-xl text-xs sm:text-sm font-bold bg-[#6520b8] hover:bg-[#53169c] text-white shadow-md shadow-purple-200 transition cursor-pointer"
+                className="flex-1 py-3 rounded-2xl text-xs sm:text-sm font-black bg-[#882CFB] hover:bg-[#701cdb] text-white shadow-lg shadow-purple-200 transition cursor-pointer"
               >
                 Confirm & Submit
               </button>

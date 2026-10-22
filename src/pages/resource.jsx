@@ -58,7 +58,7 @@ function Resources() {
       title: "Blog",
       description:
         "Be part of exclusive webinars delivered by experts across various industry sectors",
-      icon: <FaRegEdit className="text-[#2E318D] text-3xl" />,
+      icon: <FaRegEdit className="text-[#2E318D] text-2xl" />,
       bgColor: "bg-[#F5A7A766]",
       url: "/blog",
       animation: "fade-up",
@@ -67,7 +67,7 @@ function Resources() {
       title: "Webinar",
       description:
         "Be part of exclusive webinars delivered by experts across various industry sectors",
-      icon: <FaRegEdit className="text-[#2E318D] text-3xl" />,
+      icon: <FaRegEdit className="text-[#2E318D] text-2xl" />,
       bgColor: "bg-[#FFDEAA66]",
       url: "/webinar",
       animation: "fade-down",
@@ -76,7 +76,7 @@ function Resources() {
       title: "Article",
       description:
         "Be part of exclusive webinars delivered by experts across various industry sectors",
-      icon: <FaRegEdit className="text-[#2E318D] text-3xl" />,
+      icon: <FaRegEdit className="text-[#2E318D] text-2xl" />,
       bgColor: "bg-[#B9D09A66]",
       url: "/article",
       animation: "fade-up",
@@ -85,9 +85,27 @@ function Resources() {
       title: "Info",
       description:
         "Be part of exclusive webinars delivered by experts across various industry sectors",
-      icon: <FaRegEdit className="text-[#2E318D] text-3xl" />,
+      icon: <FaRegEdit className="text-[#2E318D] text-2xl" />,
       bgColor: "bg-[#F4B08866]",
       url: "/info",
+      animation: "fade-down",
+    },
+    {
+      title: "Quiz",
+      description:
+        "Test your knowledge and practice with category-wise mock exams, practice quizzes, and real test questions",
+      icon: <FaLaptop className="text-[#2E318D] text-2xl" />,
+      bgColor: "bg-[#D2E0FB66]",
+      url: "/quiz",
+      animation: "fade-up",
+    },
+    {
+      title: "Support Page",
+      description:
+        "Explore course syllabuses, exam formats, notes, and preparation guides organized category-wise",
+      icon: <FaChalkboardTeacher className="text-[#2E318D] text-2xl" />,
+      bgColor: "bg-[#E8D5C466]",
+      url: "/support-page",
       animation: "fade-down",
     },
   ];
@@ -196,7 +214,7 @@ function Resources() {
                   </div>
                 </div> */}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 w-full">
                   {cards?.map((card, index) => (
                     <Link
                       key={index}
@@ -206,14 +224,14 @@ function Resources() {
                     >
                       <div
                         data-aos={card.animation}
-                        className={`${card.bgColor} rounded-tl-[60px] rounded-br-[60px] border border-gray-300 px-10 py-10 cursor-pointer`}
+                        className={`${card.bgColor} rounded-tl-[45px] rounded-br-[45px] border border-gray-300 px-6 py-6 sm:px-7 sm:py-6 cursor-pointer hover:shadow-md transition-all`}
                       >
                         <div>{card?.icon}</div>
                         <div className="mt-2">
-                          <h2 className="text-lg font-semibold text-gray-800">
+                          <h2 className="text-base sm:text-lg font-semibold text-gray-800">
                             {card?.title}
                           </h2>
-                          <p className="text-gray-700 text-sm leading-relaxed font-semibold mt-1">
+                          <p className="text-gray-700 text-xs sm:text-[13px] leading-relaxed font-medium mt-1">
                             {card?.description}
                           </p>
                         </div>
