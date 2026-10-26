@@ -311,6 +311,7 @@ class CourseQuizAdminController extends Controller
     {
         $request->validate([
             'question_text' => 'required|string',
+            'type' => 'nullable|string|in:single_choice,dropdown,matching',
             'order_no' => 'nullable|integer',
             'marks' => 'nullable|integer',
             'correct_option' => 'required|string|in:A,B,C,D',
@@ -350,6 +351,7 @@ class CourseQuizAdminController extends Controller
                 $question = CourseQuizQuestion::findOrFail($questionId);
                 $question->update([
                     'question_text' => $request->question_text,
+                    'type' => $request->input('type', $question->type ?? 'single_choice'),
                     'image_url' => $imageUrl,
                     'order_no' => $request->input('order_no', 1),
                     'marks' => $request->input('marks', 1),
@@ -361,7 +363,7 @@ class CourseQuizAdminController extends Controller
                     'quiz_id' => $quiz->id,
                     'question_text' => $request->question_text,
                     'image_url' => $imageUrl,
-                    'type' => 'single_choice',
+                    'type' => $request->input('type', 'single_choice'),
                     'order_no' => $request->input('order_no', 1),
                     'marks' => $request->input('marks', 1),
                     'explanation' => $request->explanation,
@@ -508,7 +510,7 @@ class CourseQuizAdminController extends Controller
                 $question = CourseQuizQuestion::create([
                     'quiz_id' => $quiz->id,
                     'question_text' => $questionText,
-                    'type' => 'single_choice',
+                    'type' => $request->input('type', 'single_choice'),
                     'order_no' => $currentOrder,
                     'marks' => $marks,
                     'explanation' => $explanation,

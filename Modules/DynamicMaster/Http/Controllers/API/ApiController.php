@@ -2238,9 +2238,20 @@ class ApiController extends Controller
 
 
             $page = DynamicCoursePages::where('course_id', $filterData?->course_id)
-                ->where('country_id', $filterData?->country_id)
+                ->where(function ($q) use ($filterData) {
+                    if (!empty($filterData?->course_country_id)) {
+                        $q->where('country_id', $filterData->course_country_id);
+                    }
+                    if (!empty($filterData?->country_id)) {
+                        $q->orWhere('country_id', $filterData->country_id);
+                    }
+                })
                 ->where('state_id', $filterData?->state_id)
                 ->first();
+
+            if (!$page && $filterData?->course_id) {
+                $page = DynamicCoursePages::where('course_id', $filterData->course_id)->first();
+            }
 
             // If no dedicated page record, create a temporary one to allow data to flow
             if (!$page) {
@@ -2572,10 +2583,27 @@ private function getPlansWithFeatures($planModel, $filterData)
             $query->where('course_id', $data->course_id);
         }
         if (!in_array($modelName, $excludeCountryId)) {
-            $query->where('country_id', $data->country_id);
+            $courseCountryTables = ['DynamicCoursePages', 'CourseHighlights', 'DynamicCourseSectionheading', 'CourseOverviews', 'Course_Whatyoulearn', 'CourseImages'];
+            $targetCountryId = in_array($modelName, $courseCountryTables)
+                ? ($data->course_country_id ?? $data->country_id)
+                : ($data->country_id ?? $data->course_country_id);
+
+            if ($targetCountryId) {
+                $query->where(function ($q) use ($targetCountryId, $data) {
+                    $q->where('country_id', $targetCountryId);
+                    if (!empty($data->country_id) && $data->country_id != $targetCountryId) {
+                        $q->orWhere('country_id', $data->country_id);
+                    }
+                    if (!empty($data->course_country_id) && $data->course_country_id != $targetCountryId) {
+                        $q->orWhere('country_id', $data->course_country_id);
+                    }
+                });
+            }
         }
         if (!in_array($modelName, $excludeStateId)) {
-            $query->where('state_id', $data->state_id);
+            if (!empty($data->state_id)) {
+                $query->where('state_id', $data->state_id);
+            }
         }
         if ($modelName == 'CourseSchedule') {
             $query?->where('class_end_date', '>', now());
@@ -2584,11 +2612,22 @@ private function getPlansWithFeatures($planModel, $filterData)
         //     $query?->where('course_category', $course_cat_id);
         // }
 
-
-
-        return in_array($modelName, $returnAll)
+        $result = in_array($modelName, $returnAll)
             ? $query->get()
             : $query->first();
+
+        if ((empty($result) || ($result instanceof \Illuminate\Support\Collection && $result->isEmpty())) && !in_array($modelName, $excludeCourseId) && !empty($data->course_id)) {
+            $fallbackQuery = $model->newQuery()->select($columns)->where('course_id', $data->course_id);
+            if ($modelName == 'CourseSchedule') {
+                $fallbackQuery->where('class_end_date', '>', now());
+            }
+            $fallbackResult = in_array($modelName, $returnAll) ? $fallbackQuery->get() : $fallbackQuery->first();
+            if (!empty($fallbackResult) && !($fallbackResult instanceof \Illuminate\Support\Collection && $fallbackResult->isEmpty())) {
+                $result = $fallbackResult;
+            }
+        }
+
+        return $result;
         } catch (\Throwable $e) {
             return in_array($modelName, $returnAll) ? collect([]) : null;
         }
@@ -2622,6 +2661,10 @@ private function getPlansWithFeatures($planModel, $filterData)
             ? \Modules\DynamicMaster\Models\Country::where('code_1', strtoupper($array['country_id']))->first()
             : null;
 
+        $courseCountry = !empty($array['country_id'])
+            ? CourseCountry::where('iso2', strtoupper($array['country_id']))->first()
+            : null;
+
         // State lookup via tbl_city (state_id in data tables = tbl_city.id)
         $state = !empty($array['state_id'])
             ? \Modules\Course\Models\State::where('name', $array['state_id'])->first()
@@ -2630,6 +2673,7 @@ private function getPlansWithFeatures($planModel, $filterData)
         return (object) [
             'course_id' => $course?->id,
             'country_id' => $country?->id,
+            'course_country_id' => $courseCountry?->id,
             'state_id' => $state?->id,
         ];
     }

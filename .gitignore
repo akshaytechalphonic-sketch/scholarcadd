@@ -32,3 +32,6 @@ database/*.sql.gz
 # Runtime uploaded files
 /public/storage/
 /storage/app/public/documents/
+ 
+*.sql
+

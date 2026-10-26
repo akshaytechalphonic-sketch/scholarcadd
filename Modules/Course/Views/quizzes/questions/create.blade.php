@@ -65,7 +65,23 @@
             </span>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1">
+                    Question Type <span class="text-red-500 font-bold">*</span>
+                </label>
+                <select name="type" class="form-select w-full text-xs p-2 border rounded font-semibold text-gray-800 bg-white">
+                    <option value="single_choice" @selected(old('type', $data?->type ?? 'single_choice') === 'single_choice')>
+                        🔘 Multiple Choice (Radio Buttons)
+                    </option>
+                    <option value="dropdown" @selected(old('type', $data?->type) === 'dropdown')>
+                        🔽 Dropdown Data Selection
+                    </option>
+                    <option value="matching" @selected(old('type', $data?->type) === 'matching')>
+                        🔄 Interactive Matching Pairs
+                    </option>
+                </select>
+            </div>
             <div>
                 <label class="block text-xs font-semibold text-gray-700 mb-1">Order / Question Number</label>
                 <input type="number" name="order_no" class="form-input w-full text-xs p-2 border rounded"
