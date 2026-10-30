@@ -55,7 +55,10 @@ class ApiMiddleware
             $request->is('api/maintenance-check') ||
             $request->is('api/fetch-features') ||
             $request->is('api/ccavenue/callback') ||
+            $request->is('api/dynamic-page') ||
             $request->is('api/courses/*') ||
+            $request->is('api/course/*') ||
+            $request->is('course/*') ||
             $request->is('api/list/*') ||
             $request->is('api/resource/*') ||
             $request->is('resource/*') ||

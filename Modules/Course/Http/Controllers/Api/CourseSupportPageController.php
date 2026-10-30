@@ -120,6 +120,8 @@ class CourseSupportPageController extends Controller
                 ],
             ];
 
+            $data['schema'] = \Modules\Course\Services\CourseSchemaService::generateForSupportPage($course, $page, $data['seo'], $data['breadcrumb']);
+
             if ($relatedPages->isNotEmpty()) {
                 $data['related_support_pages'] = $relatedPages;
             }

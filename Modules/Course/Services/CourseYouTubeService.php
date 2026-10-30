@@ -26,7 +26,7 @@ class CourseYouTubeService extends Controller
             if ($request->ajax()) {
                 $query = $this->repository->CourseYoutubeList();
                 $query = $this->repository->CourseYoutubeFilters($query, $request)->orderBy('id', 'desc');
-                 if ($request->has('search') && $request->search['value']) {
+                if ($request->has('search') && $request->search['value']) {
                     $search = $request->search['value'];
                     $query->where(function ($q) use ($search) {
                         $q->where('video_description', 'like', "%$search%");
@@ -67,7 +67,7 @@ class CourseYouTubeService extends Controller
                         $dropdown .= '<li><a href="' . $edit_url . '" class="block px-6 py-2 hover:bg-gray-100"><i class="ri-pencil-line mr-2"></i>Edit</a></li>';
                         $dropdown .= '<li>
                                 <a href="javascript:void(0);"
-                                onclick="deleteRecord(\''.$delete_url.'\')"
+                                onclick="deleteRecord(\'' . $delete_url . '\')"
                                 class="block px-6 py-2 hover:bg-gray-100 text-red-600">
                                     <i class="ri-delete-bin-line mr-2"></i> Delete
                                 </a>
@@ -108,7 +108,7 @@ class CourseYouTubeService extends Controller
     {
         try {
             $data = $this->repository->CourseYoutubeStore($request);
-           // dd($data);
+            // dd($data);
             if (!$data['status']) {
                 return back()->with('error', $data['message'])->withInput();
             }

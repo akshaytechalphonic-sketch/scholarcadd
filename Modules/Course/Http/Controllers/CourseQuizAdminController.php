@@ -80,12 +80,13 @@ class CourseQuizAdminController extends Controller
                         $encId = encrypt($row->id);
                         $editUrl = route('course-quiz-edit', ['id' => $encId]);
                         $courseSlug = $row->course?->url_title ?? '';
-                        $frontendBase = rtrim((string) (config('app.frontend_url') ?: env('FRONTEND_URL', 'https://scholaracad.com')), '/');
-                        if (empty($frontendBase) || str_contains($frontendBase, 'localhost') || str_contains($frontendBase, '127.0.0.1') || str_contains($frontendBase, 'yourserver.com') || str_contains($frontendBase, 'vercel.app')) {
-                            $frontendBase = 'https://scholaracad.com';
+                        $frontendBase = rtrim((string) (config('app.frontend_url') ?: env('FRONTEND_URL', 'https://scolarcadfront.vercel.app')), '/');
+                        if (empty($frontendBase) || str_contains($frontendBase, 'localhost') || str_contains($frontendBase, '127.0.0.1') || str_contains($frontendBase, 'yourserver.com')) {
+                            $frontendBase = 'https://scolarcadfront.vercel.app';
                         }
-                        $previewUrl = ($courseSlug && !empty($row->slug)) ? $frontendBase . '/' . $courseSlug . '/quizzes/' . $row->slug : ($courseSlug ? $frontendBase . '/' . $courseSlug . '/quizzes' : '#');
-                        $allQuizzesUrl = $courseSlug ? $frontendBase . '/' . $courseSlug . '/quizzes' : '#';
+                        $previewUrl = ($courseSlug && !empty($row->slug))
+                            ? $frontendBase . '/' . $courseSlug . '/quizzes/' . $row->slug . '/questions?mode=exam'
+                            : ($courseSlug ? $frontendBase . '/' . $courseSlug . '/quizzes' : '#');
 
                         $questionsUrl = route('course-quiz-questions', ['quizId' => $encId]);
 
@@ -93,18 +94,15 @@ class CourseQuizAdminController extends Controller
                             <button type="button" class="dropdown-toggle text-gray-500 hover:text-gray-700 p-1 rounded hover:bg-gray-100">
                                 <i class="ri-more-2-fill text-lg"></i>
                             </button>
-                            <div class="dropdown-menu hidden absolute right-0 z-50 mt-1 w-52 bg-white border border-gray-200 rounded-md shadow-lg py-1">
+                            <div class="dropdown-menu hidden absolute right-0 z-50 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1">
                                 <a href="' . $questionsUrl . '" class="flex items-center px-4 py-2 text-sm text-purple-700 hover:bg-purple-50 font-medium">
                                     <i class="ri-questionnaire-line mr-2 text-purple-600"></i> Manage Questions (' . ($row->total_questions ?? 0) . ')
                                 </a>
                                 <a href="' . $editUrl . '" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                     <i class="ri-pencil-line mr-2 text-blue-500"></i> Edit Quiz
                                 </a>
-                                <a href="' . $allQuizzesUrl . '" target="_blank" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-medium">
-                                    <i class="ri-external-link-line mr-2 text-emerald-500"></i> View on Frontend
-                                </a>
                                 <a href="' . $previewUrl . '" target="_blank" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                    <i class="ri-survey-line mr-2 text-indigo-500"></i> View Quiz Simulator
+                                    <i class="ri-external-link-line mr-2 text-emerald-500"></i> View on Frontend
                                 </a>
                                 <button type="button" onclick="confirmDeleteQuiz(\'' . $encId . '\')" class="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 text-left">
                                     <i class="ri-delete-bin-line mr-2"></i> Delete

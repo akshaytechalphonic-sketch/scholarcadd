@@ -46,6 +46,7 @@ Route::group(['middleware' => 'api', 'prefix' => 'course'], function () {
     Route::post('category-and-course', [CourseController::class, 'category_and_course']);
     Route::post('view-course', [CourseController::class, 'view_course']);
     Route::post('course-list', [CourseController::class, 'course_list']);
+    Route::match(['get', 'post'], 'schema', [CourseController::class, 'course_schema']);
 });
 
 Route::group(['middleware' => 'api', 'prefix' => 'course'], function () {
@@ -55,6 +56,7 @@ Route::group(['middleware' => 'api', 'prefix' => 'course'], function () {
 });
 
 Route::group(['middleware' => 'api', 'prefix' => 'courses'], function () {
+    Route::match(['get', 'post'], '{courseSlug}/schema', [CourseController::class, 'course_schema']);
     Route::get('{courseSlug}/support/syllabus', [CourseSupportPageController::class, 'syllabus']);
     Route::get('{courseSlug}/support/exam-format', [CourseSupportPageController::class, 'examFormat']);
     Route::get('{courseSlug}/support/exam', [CourseSupportPageController::class, 'exam']);
@@ -76,9 +78,3 @@ Route::group(['middleware' => 'api', 'prefix' => 'resource'], function () {
     Route::match(['get', 'post'], 'quizzes', [QuizController::class, 'allQuizzes']);
     Route::match(['get', 'post'], 'support-pages', [CourseSupportPageController::class, 'allSupportPages']);
 });
-
-
-
-
-
-

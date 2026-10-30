@@ -12,6 +12,7 @@ use Modules\Course\Models\City;
 use Modules\DynamicMaster\Models\PlanMapping;
 use Modules\DynamicMaster\Models\Plan;
 use Modules\Course\Models\DynamicCoursePages;
+use Modules\Course\Services\CourseSchemaService;
 use Validator;
 
 class CourseController extends Controller
@@ -228,6 +229,9 @@ class CourseController extends Controller
                 return $this->replaceCountry($value, $countryName);
             }, $data);
 
+            $courseCountryObj = $request->filled('country_id') ? CourseCountry::where('iso2', $request->country_id)->first() : null;
+            $data['schema'] = CourseSchemaService::generateForCourse($dat, $courseCountryObj, $countryName);
+
             return $this->successResponse($data, 'Data fetched successfully');
 
         } catch (\Exception $e) {
@@ -362,9 +366,46 @@ class CourseController extends Controller
         }
     }
 
-    public function course_list(Request $request)
+        public function course_list(Request $request)
     {
         return $this->allCourses($request);
+    }
+
+    public function course_schema(Request $request, ?string $courseSlug = null)
+    {
+        try {
+            $courseIdentifier = $courseSlug
+                ?? $request->input('course_id')
+                ?? $request->input('slug')
+                ?? $request->input('url_title')
+                ?? $request->input('id');
+
+            if (!$courseIdentifier) {
+                return $this->errorResponse('The course id or slug is required', 422);
+            }
+
+            $courseModel = self::model('Course', 'Course');
+            $course = is_numeric($courseIdentifier)
+                ? $courseModel::with('course_category')->find($courseIdentifier)
+                : $courseModel::with('course_category')
+                    ->where('url_title', $courseIdentifier)
+                    ->orWhere('id', $courseIdentifier)
+                    ->first();
+
+            if (!$course) {
+                return $this->errorResponse('Course not found', 404);
+            }
+
+            $country = $request->filled('country_id')
+                ? CourseCountry::where('iso2', strtoupper($request->input('country_id')))->first()
+                : null;
+
+            $schema = CourseSchemaService::generateForCourse($course, $country, $country?->name ?? '');
+
+            return $this->successResponse($schema, 'Course schema fetched successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('An unexpected error occurred', 500, $e->getMessage());
+        }
     }
 
     private function replaceCountry($value, $countryName)

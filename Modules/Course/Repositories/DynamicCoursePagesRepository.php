@@ -307,7 +307,8 @@ class DynamicCoursePagesRepository extends Controller
             $highlights = $findCourseRecord('CourseHighlights', $data);
 
             $highlights->course_description             = $request->tagline;
-            $highlights->course_highlights_in_pointers  = json_encode($request->bulletArray ,  JSON_UNESCAPED_UNICODE);
+            $bulletList = array_values(array_filter((array) ($request->bulletArray ?? []), fn($v) => is_string($v) && trim($v) !== ''));
+            $highlights->course_highlights_in_pointers  = !empty($bulletList) ? json_encode($bulletList, JSON_UNESCAPED_UNICODE) : null;
             $highlights->save();
             //dd($highlights);
 
@@ -317,7 +318,8 @@ class DynamicCoursePagesRepository extends Controller
 
             $certificationEligibility = $findCourseRecord('CertificationEligibility', $data);
             // Save back as JSON
-            $certificationEligibility->eligibility_pointers = json_encode($request->cerEligibility ,  JSON_UNESCAPED_UNICODE);
+            $eligList = array_values(array_filter((array) ($request->cerEligibility ?? []), fn($v) => is_string($v) && trim($v) !== ''));
+            $certificationEligibility->eligibility_pointers = !empty($eligList) ? json_encode($eligList, JSON_UNESCAPED_UNICODE) : null;
             $certificationEligibility->save();
 
             $section = $findCourseRecord('DynamicCourseSectionheading', $data);
@@ -522,7 +524,8 @@ class DynamicCoursePagesRepository extends Controller
             // 🔸 8. WHAT YOU LEARN
             // =========================================================
             $whatYouLearn = $findCourseRecord('Course_Whatyoulearn', $data);
-            $whatYouLearn->pointers = $request->pointers;
+            $pointersList = array_values(array_filter((array) ($request->pointers ?? []), fn($v) => is_string($v) && trim($v) !== ''));
+            $whatYouLearn->pointers = !empty($pointersList) ? $pointersList : null;
             $whatYouLearn->description = $request->whatyoulearn_description;
             $whatYouLearn->save();
 
@@ -652,12 +655,18 @@ class DynamicCoursePagesRepository extends Controller
 
     protected function getCourseDataReletion($model, $data)
     {
-        return Controller::model($model, 'Course')::where('course_id', $data?->course_id)->first();
+        if (empty($data?->course_id)) {
+            return null;
+        }
+        return Controller::model($model, 'Course')::where('course_id', $data->course_id)->first();
     }
 
     protected function getCourseData($model, $data)
     {
-        return Controller::model($model, 'Course')::where('course_id', $data?->course_id)
+        if (empty($data?->course_id)) {
+            return null;
+        }
+        return Controller::model($model, 'Course')::where('course_id', $data->course_id)
             ->where('country_id', $data?->country_id)
             ->where('state_id', $data?->state_id)
             ->first();
@@ -665,7 +674,10 @@ class DynamicCoursePagesRepository extends Controller
 
     protected function getCoursewithutIdData($model, $data)
     {
-        return Controller::model($model, 'Course')::where('course_id', $data?->course_id)
+        if (empty($data?->course_id)) {
+            return null;
+        }
+        return Controller::model($model, 'Course')::where('course_id', $data->course_id)
             ->where('country_id', $data?->country_id)
             ->where('state_id', $data?->state_id)
             ->first();
@@ -673,7 +685,10 @@ class DynamicCoursePagesRepository extends Controller
 
     protected function getCoursewithwebsiteData($model, $data)
     {
-        return Controller::model($model, 'Website')::where('course_id', $data?->course_id)
+        if (empty($data?->course_id)) {
+            return null;
+        }
+        return Controller::model($model, 'Website')::where('course_id', $data->course_id)
             ->where('country_id', $data?->country_id)
             ->where('state_id', $data?->state_id)
             ->first();
@@ -681,12 +696,18 @@ class DynamicCoursePagesRepository extends Controller
 
     protected function getcourseCategoryData($model, $data)
     {
-        return Controller::model($model, 'Course')::where('course_id', $data?->course_id)->get();
+        if (empty($data?->course_id)) {
+            return collect([]);
+        }
+        return Controller::model($model, 'Course')::where('course_id', $data->course_id)->get();
     }
 
     protected function getAboutGeographyData($model, $data)
     {
-        return Controller::model($model, 'Course')::where('country_id', $data?->country_id)
+        if (empty($data?->country_id)) {
+            return null;
+        }
+        return Controller::model($model, 'Course')::where('country_id', $data->country_id)
             ->where('state_id', $data?->state_id)
             ->first();
     }

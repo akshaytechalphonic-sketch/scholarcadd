@@ -2318,6 +2318,7 @@ class ApiController extends Controller
 
 
             $responseData = $this->processCountryReplacement($responseData, $countryName, $cityName);
+            $responseData['schema'] = \Modules\Course\Services\CourseSchemaService::generateFromDynamicPageData($filterData?->course_id, $responseData, $request->input('country_id'), $countryName, $cityName);
 
             return response()->json([
                 'success' => true,
@@ -2580,6 +2581,9 @@ private function getPlansWithFeatures($planModel, $filterData)
             $query?->limit(5);
         }
         if (!in_array($modelName, $excludeCourseId)) {
+            if (empty($data->course_id)) {
+                return in_array($modelName, $returnAll) ? collect([]) : null;
+            }
             $query->where('course_id', $data->course_id);
         }
         if (!in_array($modelName, $excludeCountryId)) {
@@ -2653,7 +2657,9 @@ private function getPlansWithFeatures($planModel, $filterData)
 
     public static function getFilterKeys($array)
     {
-        $course = Course::where('url_title', $array['course_id'])->first();
+        $course = Course::where('url_title', $array['course_id'])
+            ->when(is_numeric($array['course_id'] ?? null), fn($q) => $q->orWhere('id', (int) $array['course_id']))
+            ->first();
 
         // Use tbl_country (Country model) because all data tables reference tbl_country.id
         // tbl_country has India = id 99 (code_1='IN'), which matches data in keyfeatures etc.
